@@ -441,12 +441,3 @@ body {
   color: var(--md-tertiary);
   font: var(--md-tp-label-medium);
 }
-
-/* ---------- 页脚 ---------- */
-
-.footer {
-  text-align: center;
-  font: var(--md-tp-label-medium);
-  color: var(--md-on-surface-variant);
-  padding: 24px;
-}
