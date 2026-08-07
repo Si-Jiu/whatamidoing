@@ -61,6 +61,18 @@ cargo build        # 构建二进制
 
 首次运行会自动弹出设置窗口：填服务端地址、设备名、设备 ID、上报 token，打开「共享前台状态」开关即可。
 
+**进程名映射表**：检测到的前台应用名会按规则映射成友好显示名（如 `kitty` → 终端、
+`chrome` → 浏览器）。内置一套默认映射表；要自定义，把
+`dist/linux/rules.example.json` 复制为 `~/.config/whatamidoing/rules.json` 并按需修改
+（存在该文件时完全以其为准）。支持四种匹配类型，按顺序先命中先用：
+
+| `match_type` | 含义 | 示例 |
+|---|---|---|
+| `exact` | 完全相等（不区分大小写） | `"kitty"` |
+| `prefix` | 前缀匹配 | `"com.tencent"` |
+| `contains` | 包含子串 | `"chrome"` → 匹配 `google-chrome`/`Google Chrome` |
+| `regex` | 正则表达式 | `"^chrom.*"` |
+
 **打包分发产物**：
 
 ```bash

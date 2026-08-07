@@ -1,6 +1,7 @@
 mod config;
 mod foreground;
 mod reporter;
+mod rules;
 
 use std::sync::{Arc, Mutex};
 
