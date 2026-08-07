@@ -28,7 +28,24 @@ cp .env.example .env        # 编辑 REPORT_TOKEN，可加 VIEWER_PASSWORD
 docker compose up -d --build
 ```
 
-**或用 CI 发布的 GHCR 镜像**（无需本地构建源码，远端主机直接拉取）：
+**或用 CI 发布的 GHCR 镜像**（`docker-compose.yml` 已默认用此镜像，push `v*` 标签后自动更新）：
+
+```bash
+docker compose up -d
+```
+
+> ⚠️ **私有包拉取需登录**：仓库是私有的，GHCR 包默认为私有。远端主机第一次拉取需要：
+>
+> ```bash
+> # 生成一个带 read:packages 权限的 PAT（GitHub → Settings → Developer settings → Fine-grained/PAT）
+> echo "$PAT" | docker login ghcr.io -u Si-Jiu --password-stdin
+> ```
+>
+> 若想让朋友也能免登录自托管，把包设为**公开**更省事：GitHub → 头像 → Your
+> packages → whatamidoing-server → Package settings → Change visibility → Public
+> （镜像内无密钥，`REPORT_TOKEN` 是运行时环境变量，公开无安全风险）。
+
+也可直接运行镜像：
 
 ```bash
 docker pull ghcr.io/si-jiu/whatamidoing-server:latest

@@ -1,6 +1,9 @@
 services:
   whatamidoing:
-    build: .
+    # 用 CI 发布的 GHCR 镜像（默认；push v* 标签后自动更新）
+    image: ghcr.io/si-jiu/whatamidoing-server:latest
+    # 想用本地源码构建时，注释掉上面一行，改用下面这行：
+    # build: .
     container_name: whatamidoing
     restart: unless-stopped
     ports:
