@@ -28,6 +28,15 @@ cp .env.example .env        # 编辑 REPORT_TOKEN，可加 VIEWER_PASSWORD
 docker compose up -d --build
 ```
 
+**或用 CI 发布的 GHCR 镜像**（无需本地构建源码，远端主机直接拉取）：
+
+```bash
+docker pull ghcr.io/si-jiu/whatamidoing-server:latest
+docker run -d --name whatamidoing -p 8080:8080 \
+  -e REPORT_TOKEN=你的token -e VIEWER_PASSWORD=可选密码 \
+  ghcr.io/si-jiu/whatamidoing-server:latest
+```
+
 ### 方式二：直接运行
 
 ```bash
@@ -117,6 +126,28 @@ gradle wrapper      # 首次需系统安装 Gradle
 ## 协议
 
 客户端 ⇄ 服务端 JSON 协议见 [`docs/protocol.md`](docs/protocol.md)（唯一事实来源）。
+
+## 发布 Release
+
+push 一个 `v*` 标签（如 `v0.1.0`）即触发 GitHub Actions 自动构建并发布：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+产出（GitHub Releases 页 + GHCR）：
+
+| 产物 | 说明 |
+|---|---|
+| `whatamidoing_*_amd64.AppImage` / `_amd64.deb` | Linux 桌面端 |
+| `whatamidoing_*_x64-setup.exe` | Windows 桌面端 |
+| `whatamidoing_*_aarch64.dmg` | macOS 桌面端（Apple Silicon） |
+| `app-release.apk` | 安卓端 |
+| `whatamidoing-server-linux-*` | 服务端二进制 |
+| `ghcr.io/si-jiu/whatamidoing-server:*` | 服务端 Docker 镜像 |
+
+工作流见 `.github/workflows/release.yml`。
 
 ## 目录结构
 
