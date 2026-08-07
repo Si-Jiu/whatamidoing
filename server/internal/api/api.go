@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -20,7 +19,15 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	// 仅允许同源连接（或非浏览器客户端，无 Origin 头）。
+	// 防止跨站 WebSocket 劫持：攻击站点无法借用户的会话建立 WS。
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // 非浏览器客户端
+		}
+		return origin == "http://"+r.Host || origin == "https://"+r.Host
+	},
 }
 
 var validPlatforms = map[string]bool{
@@ -142,11 +149,15 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tok := s.sessions.issue()
+	// HTTPS 连接（含反代透传的 X-Forwarded-Proto）时带 Secure 标记；
+	// 纯 HTTP/内网部署不设，否则浏览器不会发送该 cookie，登录会失效。
+	secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 	http.SetCookie(w, &http.Cookie{
 		Name:     "viewer_session",
 		Value:    tok,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int((24 * time.Hour).Seconds()),
 	})
@@ -229,11 +240,8 @@ func newSessionStore() *sessionStore {
 }
 
 func (s *sessionStore) issue() string {
-	buf := make([]byte, 32)
-	if _, err := rand.Read(buf); err != nil {
-		log.Printf("session: crypto/rand failed: %v", err)
-	}
-	tok := hex.EncodeToString(buf)
+	// rand.Text 在随机源不可用时直接 panic，绝不静默降级为零值 token。
+	tok := rand.Text()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.tokens[tok] = time.Now().Add(24 * time.Hour)
