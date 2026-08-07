@@ -1,4 +1,4 @@
-package dev.whatamidoing.client
+package dev.sijiu49.waid
 
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager

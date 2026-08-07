@@ -1,4 +1,4 @@
-package dev.whatamidoing.client.ui
+package dev.sijiu49.waid.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape

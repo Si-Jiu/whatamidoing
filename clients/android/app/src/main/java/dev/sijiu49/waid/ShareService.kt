@@ -1,4 +1,4 @@
-package dev.whatamidoing.client
+package dev.sijiu49.waid
 
 import android.app.Notification
 import android.app.NotificationChannel

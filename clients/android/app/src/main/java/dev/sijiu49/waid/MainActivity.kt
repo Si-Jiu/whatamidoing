@@ -1,4 +1,4 @@
-package dev.whatamidoing.client
+package dev.sijiu49.waid
 
 import android.app.AppOpsManager
 import android.content.Context
@@ -34,7 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import dev.whatamidoing.client.ui.AppTheme
+import dev.sijiu49.waid.ui.AppTheme
 
 class MainActivity : ComponentActivity() {
     private val cfg by lazy { ConfigStore(this) }

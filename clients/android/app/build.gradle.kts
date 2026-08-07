@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "dev.whatamidoing.client"
+    namespace = "dev.sijiu49.waid"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.whatamidoing.client"
+        applicationId = "dev.sijiu49.waid"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
