@@ -1,4 +1,3 @@
-/* whatamidoing viewer SPA — 原生 JS，无框架 */
 
 const $ = (id) => document.getElementById(id);
 
