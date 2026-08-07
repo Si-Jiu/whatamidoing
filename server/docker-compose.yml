@@ -1,17 +1,14 @@
 services:
   whatamidoing:
-    # 用 CI 发布的 GHCR 镜像（默认；push v* 标签后自动更新）
     image: ghcr.io/si-jiu/whatamidoing-server:latest
-    # 想用本地源码构建时，注释掉上面一行，改用下面这行：
-    # build: .
     container_name: whatamidoing
     restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
       # 必填：设备上报 token（与客户端配置一致）
-      REPORT_TOKEN: ${REPORT_TOKEN:?请在 .env 或环境中设置 REPORT_TOKEN}
-      # 可选：设置后查看网页需输入密码
-      VIEWER_PASSWORD: ${VIEWER_PASSWORD:-}
+      REPORT_TOKEN: "YOUR_TOKEN"
+      # 可选：网页密码
+      VIEWER_PASSWORD: "YOUR_PASSWORD"
       # 可选：离线判定阈值
-      IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
+      IDLE_TIMEOUT: "30s"
