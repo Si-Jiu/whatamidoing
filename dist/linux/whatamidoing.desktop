@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=whatamidoing
+Comment=分享当前前台应用状态到你的服务器
+Exec=/home/sijiu49/.local/bin/whatamidoing-client
+Icon=whatamidoing
+Terminal=false
+Categories=Utility;Network;
+StartupNotify=false
