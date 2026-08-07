@@ -137,24 +137,36 @@ $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const err = $("login-error");
   err.hidden = true;
+
+  let res;
   try {
-    const res = await fetch("/login", {
+    res = await fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password: $("password").value }),
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      err.textContent = data.error || "登录失败";
-      err.hidden = false;
-      return;
-    }
-    await loadState();
-    showDevices();
-    connectWS();
   } catch (e2) {
     err.textContent = "无法连接服务器";
     err.hidden = false;
+    return;
+  }
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    err.textContent = data.error || "登录失败";
+    err.hidden = false;
+    return;
+  }
+
+  // 登录成功：立即隐藏密码框并清空密码，再加载状态。
+  // 状态加载失败也靠轮询重试，不再退回登录框。
+  $("password").value = "";
+  showDevices();
+  connectWS();
+  try {
+    await loadState();
+  } catch {
+    startPolling();
   }
 });
 

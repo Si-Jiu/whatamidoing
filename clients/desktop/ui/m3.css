@@ -114,6 +114,11 @@
   box-sizing: border-box;
 }
 
+/* hidden 属性必须始终生效，防止 display 类规则（如 .login 的 flex）覆盖它 */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
@@ -435,12 +440,6 @@ body {
 .settings-form .saved-hint {
   color: var(--md-tertiary);
   font: var(--md-tp-label-medium);
-}
-
-.settings-desc {
-  font: var(--md-tp-body-medium);
-  color: var(--md-on-surface-variant);
-  margin: 0 0 8px;
 }
 
 /* ---------- 页脚 ---------- */
