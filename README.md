@@ -61,6 +61,24 @@ cargo build        # 构建二进制
 
 首次运行会自动弹出设置窗口：填服务端地址、设备名、设备 ID、上报 token，打开「共享前台状态」开关即可。
 
+**打包分发产物**：
+
+```bash
+cd clients/desktop/src-tauri
+npx tauri build --bundles appimage     # 产出单文件 .AppImage（含 webkit 运行时）
+```
+
+无头环境（无 FUSE）打包 AppImage 时需设置环境变量，并确保安装了 `patchelf`（Arch 可从
+`pacman` 安装，或解包官方包到 `~/.local/bin`）：
+
+```bash
+export APPIMAGE_EXTRACT_AND_RUN=1 NO_STRIP=1
+npx tauri build --bundles appimage
+```
+
+`.deb` 打包需要 `dpkg-deb`（Debian/Ubuntu 系自带）；Windows 的 `.msi`、macOS 的 `.dmg`
+需在对应平台构建。跨平台一键出所有安装包见下方「CI 发布」说明。
+
 ### 安卓端（Android）
 
 Kotlin + Jetpack Compose（Material 3 + MIUI X 视觉）。用 Android Studio 打开
