@@ -1,0 +1,18 @@
+# Rust / Tauri
+clients/desktop/src-tauri/target/
+clients/desktop/src-tauri/gen/
+
+# Android / Gradle
+clients/android/.gradle/
+clients/android/build/
+clients/android/app/build/
+clients/android/local.properties
+*.apk
+*.aab
+
+# Go
+server/whatamidoing-server
+
+# 编辑器/系统
+.DS_Store
+*.log

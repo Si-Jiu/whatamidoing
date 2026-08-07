@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>whatamidoing 设置</title>
+  <link rel="stylesheet" href="m3.css">
+</head>
+<body>
+  <form class="settings-form" id="settings-form">
+    <h1 class="headline">whatamidoing</h1>
+    <p class="settings-desc">共享此设备的前台状态到你的服务器。</p>
+
+    <label class="md-switch">
+      <input type="checkbox" id="enabled">
+      <span>共享前台状态</span>
+    </label>
+
+    <div class="md-field">
+      <label for="server_url">服务端地址</label>
+      <input id="server_url" type="url" placeholder="https://wad.example.com" required>
+    </div>
+
+    <div class="md-field">
+      <label for="device_name">设备名称</label>
+      <input id="device_name" type="text" required>
+    </div>
+
+    <div class="md-field">
+      <label for="device_id">设备 ID</label>
+      <input id="device_id" type="text" placeholder="desktop-main" required>
+    </div>
+
+    <div class="md-field">
+      <label for="token">上报 Token</label>
+      <input id="token" type="password" required>
+    </div>
+
+    <div class="md-field">
+      <label for="interval_secs">上报间隔（秒）</label>
+      <input id="interval_secs" type="number" min="1" max="60">
+    </div>
+
+    <div class="actions">
+      <span class="saved-hint" id="saved-hint" hidden>已保存 ✓</span>
+      <button type="submit" class="md-button md-button--filled">保存</button>
+    </div>
+    <p class="error-text" id="error" hidden></p>
+  </form>
+  <script src="app.js"></script>
+</body>
+</html>

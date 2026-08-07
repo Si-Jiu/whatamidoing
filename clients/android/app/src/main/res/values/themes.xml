@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose 负责实际主题；此 XML 主题仅供启动窗口使用 -->
+    <style name="Theme.Whatamidoing" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">#FBF8FF</item>
+    </style>
+</resources>

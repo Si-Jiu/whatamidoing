@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>whatamidoing</title>
+  <link rel="stylesheet" href="m3.css">
+</head>
+<body>
+  <header class="app-bar">
+    <span class="app-bar__title">whatamidoing</span>
+    <span class="app-bar__subtitle">此刻正在做什么？</span>
+  </header>
+
+  <main class="content">
+    <section id="view-login" class="login" hidden>
+      <form class="md-card login__card" id="login-form">
+        <h1 class="headline">输入访问密码</h1>
+        <div class="md-field">
+          <label for="password">访问密码</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="md-button md-button--filled">进入</button>
+        <p class="error-text" id="login-error" hidden></p>
+      </form>
+    </section>
+
+    <section id="view-devices" hidden>
+      <p class="empty-text" id="empty" hidden>还没有设备在线，等朋友上线吧 🌱</p>
+      <div class="device-grid" id="devices"></div>
+    </section>
+  </main>
+
+  <footer class="footer">whatamidoing · 前端状态共享</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

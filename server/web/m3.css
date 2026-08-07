@@ -1,0 +1,447 @@
+/* ===========================================================================
+   whatamidoing — Material Design 3 样式
+   手写 M3 token + 组件，零依赖、零构建。
+   桌面端设置窗口（Tauri）复用同一份文件。
+   =========================================================================== */
+
+/* ---------- 设计 token ---------- */
+
+:root {
+  color-scheme: light;
+
+  /* Color roles（M3 baseline + 靛蓝 primary） */
+  --md-primary: #5b5bd6;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #e0e0ff;
+  --md-on-primary-container: #00006e;
+  --md-secondary-container: #e3e1f9;
+  --md-on-secondary-container: #1a1b2e;
+  --md-tertiary: #006d4b;
+  --md-tertiary-container: #88f8c6;
+  --md-on-tertiary-container: #002114;
+  --md-surface: #fbf8ff;
+  --md-surface-dim: #dad8e0;
+  --md-surface-bright: #fbf8ff;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f5f2fa;
+  --md-surface-container: #efecf4;
+  --md-surface-container-high: #e9e6ee;
+  --md-surface-container-highest: #e4e1e9;
+  --md-on-surface: #1c1b20;
+  --md-on-surface-variant: #48464e;
+  --md-outline: #79767f;
+  --md-outline-variant: #cac6d0;
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
+  --md-inverse-surface: #313036;
+  --md-inverse-on-surface: #f2eff7;
+
+  /* 语义色（本项目自定义） */
+  --md-online: #2e7d32;
+  --md-online-container: #b7f0b6;
+  --md-offline: #757575;
+  --md-offline-container: #e0e0e0;
+
+  /* Type scale */
+  --md-tp-display-small: 400 36px/44px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-headline-large: 400 32px/40px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-headline-medium: 400 28px/36px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-title-large: 400 22px/28px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-title-medium: 500 16px/24px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-title-small: 500 14px/20px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-body-large: 400 16px/24px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-body-medium: 400 14px/20px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-label-large: 500 14px/20px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+  --md-tp-label-medium: 500 12px/16px "Roboto", "Noto Sans SC", system-ui, sans-serif;
+
+  /* Elevation */
+  --md-elev-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --md-elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --md-elev-3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
+
+  /* Shape */
+  --md-shape-xs: 4px;
+  --md-shape-sm: 8px;
+  --md-shape-md: 12px;
+  --md-shape-lg: 16px;
+  --md-shape-full: 9999px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --md-primary: #bfbfff;
+    --md-on-primary: #1a1a86;
+    --md-primary-container: #4242bd;
+    --md-on-primary-container: #e0e0ff;
+    --md-secondary-container: #353645;
+    --md-on-secondary-container: #e3e1f9;
+    --md-tertiary: #68dbab;
+    --md-tertiary-container: #005234;
+    --md-on-tertiary-container: #88f8c6;
+    --md-surface: #141318;
+    --md-surface-dim: #141318;
+    --md-surface-bright: #3a3940;
+    --md-surface-container-lowest: #0f0e13;
+    --md-surface-container-low: #1c1b20;
+    --md-surface-container: #201f24;
+    --md-surface-container-high: #2a2930;
+    --md-surface-container-highest: #35343b;
+    --md-on-surface: #e4e1e9;
+    --md-on-surface-variant: #cac6d0;
+    --md-outline: #948f99;
+    --md-outline-variant: #49454f;
+    --md-error: #ffb4ab;
+    --md-on-error: #690005;
+    --md-error-container: #93000a;
+    --md-on-error-container: #ffdad6;
+    --md-inverse-surface: #e4e1e9;
+    --md-inverse-on-surface: #313036;
+
+    --md-online: #8bd68f;
+    --md-online-container: #264b29;
+    --md-offline: #9e9e9e;
+    --md-offline-container: #3c3c3c;
+  }
+}
+
+/* ---------- 基础 ---------- */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  font: var(--md-tp-body-large);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ---------- 顶部应用栏 ---------- */
+
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 24px;
+  background: color-mix(in srgb, var(--md-surface-container) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.app-bar__title {
+  font: var(--md-tp-headline-medium);
+}
+
+.app-bar__subtitle {
+  font: var(--md-tp-body-medium);
+  color: var(--md-on-surface-variant);
+}
+
+.app-bar__right {
+  margin-left: auto;
+}
+
+/* ---------- 布局 ---------- */
+
+.content {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 24px 64px;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ---------- 卡片（md-card） ---------- */
+
+.md-card {
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-md);
+  padding: 20px;
+  box-shadow: var(--md-elev-1);
+}
+
+/* ---------- 设备卡片 ---------- */
+
+.device {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.device:hover {
+  box-shadow: var(--md-elev-2);
+  transform: translateY(-1px);
+}
+
+.device--offline {
+  opacity: 0.72;
+}
+
+.device__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.device__name {
+  font: var(--md-tp-title-large);
+}
+
+.device__platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-full);
+  padding: 2px 10px;
+}
+
+.device__status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--md-offline);
+  box-shadow: 0 0 0 3px var(--md-offline-container);
+}
+
+.status-dot--online {
+  background: var(--md-online);
+  box-shadow: 0 0 0 3px var(--md-online-container);
+}
+
+.device__app {
+  font: var(--md-tp-display-small);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.device--offline .device__app {
+  font: var(--md-tp-headline-large);
+  color: var(--md-on-surface-variant);
+}
+
+.device__window {
+  font: var(--md-tp-body-medium);
+  color: var(--md-on-surface-variant);
+  word-break: break-word;
+}
+
+.device__meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+}
+
+/* ---------- 空态 / 错误 ---------- */
+
+.empty-text {
+  font: var(--md-tp-body-medium);
+  color: var(--md-on-surface-variant);
+  text-align: center;
+  padding: 48px 0;
+}
+
+.error-text {
+  color: var(--md-error);
+  font: var(--md-tp-body-medium);
+  margin: 8px 0 0;
+}
+
+/* ---------- 登录 ---------- */
+
+.login {
+  display: flex;
+  justify-content: center;
+  padding-top: 12vh;
+}
+
+.login__card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login__card .headline {
+  font: var(--md-tp-headline-medium);
+  margin: 0 0 4px;
+}
+
+/* ---------- 输入框（outlined text field） ---------- */
+
+.md-field {
+  position: relative;
+}
+
+.md-field input {
+  width: 100%;
+  font: var(--md-tp-body-large);
+  color: var(--md-on-surface);
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline);
+  border-radius: var(--md-shape-xs);
+  padding: 16px 16px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.md-field input:focus-visible {
+  outline: none;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px var(--md-primary);
+}
+
+.md-field label {
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  padding: 0 4px;
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container-lowest);
+}
+
+/* ---------- 按钮（filled） ---------- */
+
+.md-button {
+  font: var(--md-tp-label-large);
+  height: 40px;
+  padding: 0 24px;
+  border-radius: var(--md-shape-full);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: filter 0.15s ease;
+}
+
+.md-button:hover {
+  filter: brightness(1.05);
+}
+
+.md-button:active {
+  filter: brightness(0.95);
+}
+
+.md-button--filled {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+.md-button--text {
+  background: transparent;
+  color: var(--md-primary);
+}
+
+/* ---------- 开关（switch） ---------- */
+
+.md-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font: var(--md-tp-label-large);
+  user-select: none;
+}
+
+.md-switch input {
+  appearance: none;
+  width: 52px;
+  height: 32px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-highest);
+  border: 2px solid var(--md-outline);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.md-switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--md-outline);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.md-switch input:checked {
+  background: var(--md-primary);
+  border-color: var(--md-primary);
+}
+
+.md-switch input:checked::after {
+  transform: translateX(20px);
+  background: var(--md-on-primary);
+}
+
+/* ---------- 设置表单（桌面端复用） ---------- */
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+
+.settings-form .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.settings-form .saved-hint {
+  color: var(--md-tertiary);
+  font: var(--md-tp-label-medium);
+}
+
+/* ---------- 页脚 ---------- */
+
+.footer {
+  text-align: center;
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+  padding: 24px;
+}
