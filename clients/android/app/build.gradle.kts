@@ -19,6 +19,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // 个人分发：用 debug 签名，保证 CI 产出的 APK 可直接安装。
+            // 若上架应用商店，请替换为正式签名并移除该行。
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
