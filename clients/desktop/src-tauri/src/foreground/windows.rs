@@ -1,11 +1,10 @@
 //! Windows foreground detection via Win32: `GetForegroundWindow` + `GetWindowTextW`.
 //! App name comes from the owning process's executable name.
 
-use windows_sys::Win32::Foundation::HWND;
+use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, HWND};
 use windows_sys::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
 };
-use windows_sys::Win32::System::Threading::CloseHandle;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW,
 };
@@ -43,8 +42,8 @@ unsafe fn window_text(hwnd: HWND) -> String {
 
 /// Resolve the exe name of `pid` via a process snapshot.
 unsafe fn process_name(pid: u32) -> Option<String> {
-    let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if snapshot.is_invalid() {
+    let snapshot: HANDLE = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if snapshot.is_null() {
         return None;
     }
     let mut entry: PROCESSENTRY32W = std::mem::zeroed();
