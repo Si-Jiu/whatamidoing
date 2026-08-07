@@ -13,6 +13,9 @@ clients/android/local.properties
 # Go
 server/whatamidoing-server
 
+# 打包/传输产物
+*.zip
+
 # 编辑器/系统
 .DS_Store
 *.log
