@@ -53,13 +53,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # GHCR 镜像名必须全小写，故将 owner 转小写后拼标签
+      - name: Lowercase image owner
+        id: lower
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v6
         with:
           context: server
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/whatamidoing-server:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/whatamidoing-server:latest
+            ghcr.io/${{ steps.lower.outputs.owner }}/whatamidoing-server:${{ github.ref_name }}
+            ghcr.io/${{ steps.lower.outputs.owner }}/whatamidoing-server:latest
 
   # ============ 桌面端：Linux（deb + AppImage）============
   desktop-linux:
