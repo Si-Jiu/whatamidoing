@@ -5,5 +5,5 @@ import "embed"
 
 // Files is the embedded viewer SPA, served from the server's web root.
 //
-//go:embed all:*
+//go:embed index.html m3.css app.js assets
 var Files embed.FS
