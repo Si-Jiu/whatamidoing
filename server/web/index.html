@@ -24,7 +24,6 @@
     <section id="view-setup" class="login" hidden>
       <form class="md-card login__card" id="setup-form">
         <h1 class="headline">设置管理员密码</h1>
-        <p class="settings-desc">初始化令牌在服务端启动日志里（Docker 用 <code>docker logs &lt;容器&gt;</code> 查看）。</p>
         <div class="md-field">
           <label for="setup-token">初始化令牌</label>
           <input id="setup-token" type="text" autocomplete="off" required>
@@ -75,36 +74,23 @@
         <div class="admin-row admin-row--wrap">
           <div class="md-field admin-field">
             <label for="new-device-name">设备名称</label>
-            <input id="new-device-name" type="text" placeholder="我的电脑 / 手机">
+            <input id="new-device-name" type="text" placeholder="笔记本/手机">
           </div>
           <div class="md-field admin-field">
             <label for="new-device-platform">设备类型</label>
-            <select id="new-device-platform">
-              <option value="windows">Windows</option>
-              <option value="macos">macOS</option>
-              <option value="linux" selected>Linux</option>
-              <option value="android">Android</option>
-              <option value="">自定义</option>
-            </select>
-          </div>
-          <div class="md-field admin-field" id="custom-platform-wrap" hidden>
-            <label for="new-device-custom">自定义类型</label>
-            <input id="new-device-custom" type="text" placeholder="如：SteamOS">
+            <select id="new-device-platform"></select>
           </div>
           <div class="md-field admin-field" id="distro-wrap" hidden>
             <label for="new-device-distro">发行版</label>
-            <select id="new-device-distro">
-              <option value="archlinux">Arch Linux</option>
-              <option value="cachyos">CachyOS</option>
-              <option value="debian">Debian</option>
-              <option value="nixos">NixOS</option>
-              <option value="steamos">SteamOS</option>
-              <option value="ubuntu">Ubuntu</option>
-            </select>
+            <select id="new-device-distro"></select>
+          </div>
+          <div class="md-field admin-field" id="distro-custom-wrap" hidden>
+            <label for="new-device-distro-custom">自定义发行版</label>
+            <input id="new-device-distro-custom" type="text" placeholder="如：Fedora">
           </div>
           <button id="add-device" class="md-button md-button--filled">添加设备</button>
         </div>
-        <p class="empty-text admin-empty" id="admin-empty" hidden>还没有设备，添加一个吧</p>
+        <p class="empty-text admin-empty" id="admin-empty" hidden>暂无设备</p>
         <div id="admin-devices" class="admin-device-list"></div>
       </div>
     </section>
@@ -124,7 +110,7 @@
 
     <!-- 设备卡片 -->
     <section id="view-devices" hidden>
-      <p class="empty-text" id="empty" hidden>还没有设备，去管理面板添加吧</p>
+      <p class="empty-text" id="empty" hidden>暂无设备</p>
       <div class="device-grid" id="devices"></div>
     </section>
   </main>

@@ -37,10 +37,10 @@ function showDevices() {
 /* ---------- 平台/发行版图标（SVG 文件在 assets/ 下） ---------- */
 
 const PLATFORM_META = {
-  windows: { label: "Windows", icon: "windows" },
-  macos: { label: "macOS", icon: "macos" },
-  linux: { label: "Linux", icon: "linux" },
-  android: { label: "Android", icon: "android" },
+  windows: { label: "Windows", icon: "platform-windows" },
+  macos: { label: "macOS", icon: "platform-macos" },
+  linux: { label: "Linux", icon: "platform-linux" },
+  android: { label: "Android", icon: "platform-android" },
 };
 
 const DISTRO_META = {
@@ -53,11 +53,11 @@ const DISTRO_META = {
 };
 
 function platformMeta(p) {
-  return PLATFORM_META[p] || { label: p || "其他", icon: "custom" };
+  return PLATFORM_META[p] || { label: p || "其他", icon: "platform-custom" };
 }
 
 function distroMeta(d) {
-  return DISTRO_META[d] || (d ? { label: d, icon: "linux" } : null);
+  return DISTRO_META[d] || (d ? { label: d, icon: "platform-linux" } : null);
 }
 
 /** 平台显示名；Linux 且登记了发行版时显示"Linux · 发行版" */
@@ -328,27 +328,47 @@ function renderAdminDevices(devices) {
   }
 }
 
-function syncPlatformFields() {
-  const v = $("new-device-platform").value;
-  $("custom-platform-wrap").hidden = v !== "";
-  $("distro-wrap").hidden = v !== "linux";
+/** 用 meta 表填充 select 的 option（数据驱动，不在 HTML 写死）；extra 追加末尾选项 */
+function populateSelect(id, meta, extra) {
+  const sel = $(id);
+  sel.innerHTML = "";
+  for (const [value, m] of Object.entries(meta)) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = m.label;
+    sel.appendChild(opt);
+  }
+  if (extra) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = extra;
+    sel.appendChild(opt);
+  }
 }
-$("new-device-platform").addEventListener("change", () => {
-  syncPlatformFields();
-  if ($("new-device-platform").value === "") $("new-device-custom").focus();
-});
+
+populateSelect("new-device-platform", PLATFORM_META);
+populateSelect("new-device-distro", DISTRO_META, "自定义");
+$("new-device-platform").value = "linux"; // 默认选中 Linux
+
+function syncPlatformFields() {
+  const isLinux = $("new-device-platform").value === "linux";
+  $("distro-wrap").hidden = !isLinux;
+  // 发行版选了"自定义"时显示自定义输入框
+  $("distro-custom-wrap").hidden = !($("new-device-distro").value === "");
+}
+$("new-device-platform").addEventListener("change", syncPlatformFields);
+$("new-device-distro").addEventListener("change", syncPlatformFields);
 syncPlatformFields();
 
 $("add-device").addEventListener("click", async () => {
   const name = $("new-device-name").value.trim();
   if (!name) return;
-  let platform = $("new-device-platform").value;
+  const platform = $("new-device-platform").value;
   let distro = "";
-  if (platform === "") {
-    platform = $("new-device-custom").value.trim();
-    if (!platform) return;
-  } else if (platform === "linux") {
-    distro = $("new-device-distro").value;
+  if (platform === "linux") {
+    const v = $("new-device-distro").value;
+    distro = v === "" ? $("new-device-distro-custom").value.trim() : v;
+    if (!distro) return;
   }
   const res = await fetch("/api/admin/devices", {
     method: "POST",
@@ -357,7 +377,7 @@ $("add-device").addEventListener("click", async () => {
   });
   if (res.ok) {
     $("new-device-name").value = "";
-    $("new-device-custom").value = "";
+    $("new-device-distro-custom").value = "";
     openAdminPanel();
   }
 });
