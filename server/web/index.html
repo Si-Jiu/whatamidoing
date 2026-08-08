@@ -10,9 +10,72 @@
   <header class="app-bar">
     <span class="app-bar__title">What Am I Doing</span>
     <span class="app-bar__subtitle">随时随地视奸</span>
+    <span class="app-bar__right">
+      <button id="admin-btn" class="md-button md-button--text" hidden>管理员</button>
+    </span>
   </header>
 
   <main class="content">
+    <!-- 首次使用：设置管理员密码 -->
+    <section id="view-setup" class="login" hidden>
+      <form class="md-card login__card" id="setup-form">
+        <h1 class="headline">设置管理员密码</h1>
+        <div class="md-field">
+          <label for="setup-password">管理员密码（至少 6 位）</label>
+          <input id="setup-password" type="password" autocomplete="new-password" required>
+        </div>
+        <button type="submit" class="md-button md-button--filled">初始化</button>
+        <p class="error-text" id="setup-error" hidden></p>
+      </form>
+    </section>
+
+    <!-- 管理员登录 -->
+    <section id="view-admin-login" class="login" hidden>
+      <form class="md-card login__card" id="admin-login-form">
+        <h1 class="headline">管理员登录</h1>
+        <div class="md-field">
+          <label for="admin-password">管理员密码</label>
+          <input id="admin-password" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="md-button md-button--filled">登录</button>
+        <p class="error-text" id="admin-login-error" hidden></p>
+      </form>
+    </section>
+
+    <!-- 管理面板 -->
+    <section id="view-admin" hidden>
+      <div class="admin-head">
+        <h1 class="headline">管理面板</h1>
+        <button id="admin-back" class="md-button md-button--text">← 返回查看</button>
+      </div>
+
+      <div class="md-card admin-section">
+        <h2 class="title">网页查看密码</h2>
+        <div class="admin-row">
+          <div class="md-field admin-field">
+            <label for="viewer-password">网页查看密码（留空 = 免密查看）</label>
+            <input id="viewer-password" type="text" autocomplete="off">
+          </div>
+          <button id="viewer-pw-save" class="md-button md-button--filled">保存</button>
+        </div>
+        <p class="saved-hint" id="viewer-pw-hint" hidden>已保存 ✓</p>
+      </div>
+
+      <div class="md-card admin-section">
+        <h2 class="title">设备管理</h2>
+        <div class="admin-row">
+          <div class="md-field admin-field">
+            <label for="new-device-name">设备名称</label>
+            <input id="new-device-name" type="text" placeholder="我的电脑 / 手机">
+          </div>
+          <button id="add-device" class="md-button md-button--filled">添加设备</button>
+        </div>
+        <p class="empty-text admin-empty" id="admin-empty" hidden>还没有设备，添加一个吧</p>
+        <div id="admin-devices" class="admin-device-list"></div>
+      </div>
+    </section>
+
+    <!-- 查看者登录 -->
     <section id="view-login" class="login" hidden>
       <form class="md-card login__card" id="login-form">
         <h1 class="headline">输入访问密码</h1>
@@ -25,11 +88,14 @@
       </form>
     </section>
 
+    <!-- 设备卡片 -->
     <section id="view-devices" hidden>
-      <p class="empty-text" id="empty" hidden>没有设备在线</p>
+      <p class="empty-text" id="empty" hidden>还没有设备，去管理面板添加吧</p>
       <div class="device-grid" id="devices"></div>
     </section>
   </main>
+
+  <footer class="footer">WAID · 前端状态共享</footer>
 
   <script src="app.js"></script>
 </body>

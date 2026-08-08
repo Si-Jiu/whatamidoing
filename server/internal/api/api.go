@@ -7,13 +7,16 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/bcrypt"
 
 	"whatamidoing/server/internal/config"
+	"whatamidoing/server/internal/data"
 	"whatamidoing/server/internal/hub"
 	"whatamidoing/server/internal/store"
 )
@@ -39,33 +42,170 @@ var validPlatforms = map[string]bool{
 
 // Server bundles the HTTP handlers and their dependencies.
 type Server struct {
-	cfg      config.Config
-	store    *store.Store
-	hub      *hub.Hub
-	sessions *sessionStore
+	cfg            config.Config
+	store          *store.Store // 实时状态（内存）
+	data           *data.Store  // 持久化配置（管理员/设备/token）
+	hub            *hub.Hub
+	viewerSessions *sessionStore
+	adminSessions  *sessionStore
 }
 
 // New builds the HTTP handler for the whole server.
-func New(cfg config.Config, st *store.Store, h *hub.Hub, assets fs.FS) http.Handler {
+func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, assets fs.FS) http.Handler {
 	s := &Server{
-		cfg:      cfg,
-		store:    st,
-		hub:      h,
-		sessions: newSessionStore(),
+		cfg:            cfg,
+		store:          st,
+		data:           ds,
+		hub:            h,
+		viewerSessions: newSessionStore(),
+		adminSessions:  newSessionStore(),
 	}
 	go s.runOfflineDetector()
 
 	mux := http.NewServeMux()
+	// 管理员
+	mux.HandleFunc("GET /api/admin/status", s.handleAdminStatus)
+	mux.HandleFunc("POST /api/admin/setup", s.handleAdminSetup)
+	mux.HandleFunc("POST /api/admin/login", s.handleAdminLogin)
+	mux.HandleFunc("GET /api/admin/devices", s.requireAdmin(s.handleAdminDevices))
+	mux.HandleFunc("POST /api/admin/devices", s.requireAdmin(s.handleAdminAddDevice))
+	mux.HandleFunc("DELETE /api/admin/devices/{id}", s.requireAdmin(s.handleAdminDeleteDevice))
+	mux.HandleFunc("POST /api/admin/viewer-password", s.requireAdmin(s.handleAdminViewerPassword))
+	// 设备上报 / 查看
 	mux.HandleFunc("POST /api/v1/report", s.handleReport)
 	mux.HandleFunc("GET /api/v1/state", s.requireViewer(s.handleState))
 	mux.HandleFunc("GET /ws", s.requireViewer(s.handleWS))
 	mux.HandleFunc("POST /login", s.handleLogin)
 	mux.HandleFunc("GET /healthz", s.handleHealth)
-	mux.Handle("/", http.FileServer(http.FS(assets)))
+	// 静态资源不缓存：资源小且随版本变化，避免浏览器/CDN 缓存旧版
+	mux.Handle("/", noCache(http.FileServer(http.FS(assets))))
 	return mux
 }
 
-// --- report ---
+func noCache(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// --- 管理员 ---
+
+func (s *Server) handleAdminStatus(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"initialized": s.data.IsAdminInitialized()})
+}
+
+func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
+	if s.data.IsAdminInitialized() {
+		writeError(w, http.StatusConflict, "管理员已初始化")
+		return
+	}
+	var in struct {
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &in) {
+		return
+	}
+	if len(in.Password) < 6 {
+		writeError(w, http.StatusBadRequest, "管理员密码至少 6 位")
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "密码处理失败")
+		return
+	}
+	if err := s.data.SetAdminPassword(string(hash)); err != nil {
+		writeError(w, http.StatusInternalServerError, "保存失败")
+		return
+	}
+	s.setAdminCookie(w, r)
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
+	if !s.data.IsAdminInitialized() {
+		writeError(w, http.StatusNotFound, "尚未初始化")
+		return
+	}
+	var in struct {
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &in) {
+		return
+	}
+	hash := s.data.AdminPasswordHash()
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) != nil {
+		writeError(w, http.StatusUnauthorized, "密码错误")
+		return
+	}
+	s.setAdminCookie(w, r)
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) handleAdminDevices(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"devices": s.data.Devices()})
+}
+
+func (s *Server) handleAdminAddDevice(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !decodeJSON(w, r, &in) {
+		return
+	}
+	name := strings.TrimSpace(in.Name)
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "设备名称不能为空")
+		return
+	}
+	dev, err := s.data.AddDevice(name)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "保存失败")
+		return
+	}
+	s.hub.Broadcast(stateMessage(s.allDevices()))
+	writeJSON(w, http.StatusOK, dev)
+}
+
+func (s *Server) handleAdminDeleteDevice(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := s.data.RemoveDevice(id); err != nil {
+		writeError(w, http.StatusNotFound, "设备不存在")
+		return
+	}
+	s.hub.Broadcast(stateMessage(s.allDevices()))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleAdminViewerPassword(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &in) {
+		return
+	}
+	if strings.TrimSpace(in.Password) == "" {
+		if err := s.data.SetViewerPasswordHash(""); err != nil {
+			writeError(w, http.StatusInternalServerError, "保存失败")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "密码处理失败")
+		return
+	}
+	if err := s.data.SetViewerPasswordHash(string(hash)); err != nil {
+		writeError(w, http.StatusInternalServerError, "保存失败")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// --- 设备上报 ---
 
 type reportRequest struct {
 	DeviceID     string     `json:"device_id"`
@@ -77,12 +217,6 @@ type reportRequest struct {
 }
 
 func (r reportRequest) validate() error {
-	if strings.TrimSpace(r.DeviceID) == "" {
-		return errors.New("device_id 不能为空")
-	}
-	if strings.TrimSpace(r.DeviceName) == "" {
-		return errors.New("device_name 不能为空")
-	}
 	if !validPlatforms[r.Platform] {
 		return errors.New("platform 必须为 windows/macos/linux/android 之一")
 	}
@@ -93,7 +227,9 @@ func (r reportRequest) validate() error {
 }
 
 func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
-	if !s.authorizedDevice(r) {
+	token := bearerToken(r)
+	dev, ok := s.data.DeviceByToken(token)
+	if !ok {
 		writeError(w, http.StatusUnauthorized, "token 无效")
 		return
 	}
@@ -109,9 +245,10 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	if in.AppStartedAt != nil {
 		started = *in.AppStartedAt
 	}
+	// 设备身份以管理面板注册的为准（token → 设备），忽略上报里的 device_id/name
 	updated := s.store.Upsert(store.DeviceState{
-		DeviceID:     in.DeviceID,
-		DeviceName:   in.DeviceName,
+		DeviceID:     dev.ID,
+		DeviceName:   dev.Name,
 		Platform:     in.Platform,
 		App:          in.App,
 		WindowTitle:  in.WindowTitle,
@@ -121,20 +258,46 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) authorizedDevice(r *http.Request) bool {
+func bearerToken(r *http.Request) string {
 	auth := r.Header.Get("Authorization")
-	return strings.HasPrefix(auth, "Bearer ") &&
-		strings.TrimPrefix(auth, "Bearer ") == s.cfg.ReportToken
+	if strings.HasPrefix(auth, "Bearer ") {
+		return strings.TrimPrefix(auth, "Bearer ")
+	}
+	return ""
 }
 
-// --- state / login / ws ---
+// --- 查看 ---
+
+// allDevices 返回管理面板注册的所有设备及其实时状态（未上报的显示离线）。
+func (s *Server) allDevices() []store.DeviceState {
+	liveMap := make(map[string]store.DeviceState, 8)
+	for _, d := range s.store.List() {
+		liveMap[d.DeviceID] = d
+	}
+	devices := s.data.Devices()
+	out := make([]store.DeviceState, 0, len(devices))
+	for _, dev := range devices {
+		if l, ok := liveMap[dev.ID]; ok {
+			out = append(out, l)
+		} else {
+			out = append(out, store.DeviceState{
+				DeviceID:   dev.ID,
+				DeviceName: dev.Name,
+				Online:     false,
+			})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].DeviceID < out[j].DeviceID })
+	return out
+}
 
 func (s *Server) handleState(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"devices": s.store.List()})
+	writeJSON(w, http.StatusOK, map[string]any{"devices": s.allDevices()})
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.ViewerPassword == "" {
+	hash := s.data.ViewerPasswordHash()
+	if hash == "" {
 		writeError(w, http.StatusNotFound, "未启用查看密码")
 		return
 	}
@@ -144,23 +307,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &in) {
 		return
 	}
-	if in.Password != s.cfg.ViewerPassword {
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) != nil {
 		writeError(w, http.StatusUnauthorized, "密码错误")
 		return
 	}
-	tok := s.sessions.issue()
-	// HTTPS 连接（含反代透传的 X-Forwarded-Proto）时带 Secure 标记；
-	// 纯 HTTP/内网部署不设，否则浏览器不会发送该 cookie，登录会失效。
-	secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
-	http.SetCookie(w, &http.Cookie{
-		Name:     "viewer_session",
-		Value:    tok,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int((24 * time.Hour).Seconds()),
-	})
+	s.setViewerCookie(w, r)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -173,7 +324,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	s.hub.Register(c)
 
 	select {
-	case c.Send <- stateMessage(s.store.List()):
+	case c.Send <- stateMessage(s.allDevices()):
 	default:
 	}
 
@@ -204,13 +355,25 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 // requireViewer guards an endpoint with viewer auth (no-op when no password set).
 func (s *Server) requireViewer(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.cfg.ViewerPassword == "" {
+		if s.data.ViewerPasswordHash() == "" {
 			next(w, r)
 			return
 		}
 		c, err := r.Cookie("viewer_session")
-		if err != nil || !s.sessions.valid(c.Value) {
+		if err != nil || !s.viewerSessions.valid(c.Value) {
 			writeError(w, http.StatusUnauthorized, "需要登录")
+			return
+		}
+		next(w, r)
+	}
+}
+
+// requireAdmin guards an endpoint with admin session auth.
+func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("admin_session")
+		if err != nil || !s.adminSessions.valid(c.Value) {
+			writeError(w, http.StatusUnauthorized, "需要管理员登录")
 			return
 		}
 		next(w, r)
@@ -228,7 +391,7 @@ func (s *Server) runOfflineDetector() {
 	}
 }
 
-// --- viewer sessions ---
+// --- 会话 ---
 
 type sessionStore struct {
 	mu     sync.Mutex
@@ -260,6 +423,29 @@ func (s *sessionStore) valid(tok string) bool {
 		return false
 	}
 	return true
+}
+
+func (s *Server) setViewerCookie(w http.ResponseWriter, r *http.Request) {
+	setSessionCookie(w, r, "viewer_session", s.viewerSessions.issue())
+}
+
+func (s *Server) setAdminCookie(w http.ResponseWriter, r *http.Request) {
+	setSessionCookie(w, r, "admin_session", s.adminSessions.issue())
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request, name, value string) {
+	// HTTPS 连接（含反代透传的 X-Forwarded-Proto）时带 Secure 标记；
+	// 纯 HTTP/内网部署不设，否则浏览器不会发送该 cookie，登录会失效。
+	secure := r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int((24 * time.Hour).Seconds()),
+	})
 }
 
 // --- message + JSON helpers ---

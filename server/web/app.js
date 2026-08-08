@@ -1,8 +1,14 @@
+/* whatamidoing viewer SPA — 原生 JS，无框架 */
+/* 含：首次初始化管理员、管理面板（设备/网页密码）、查看端实时状态 */
 
 const $ = (id) => document.getElementById(id);
 
+const viewSetup = $("view-setup");
+const viewAdminLogin = $("view-admin-login");
+const viewAdmin = $("view-admin");
 const viewLogin = $("view-login");
 const viewDevices = $("view-devices");
+const adminBtn = $("admin-btn");
 const empty = $("empty");
 const devicesEl = $("devices");
 
@@ -10,6 +16,23 @@ const devicesEl = $("devices");
 const cards = new Map();
 /** last snapshot for duration ticking */
 let lastDevices = [];
+
+/* ---------- 视图切换 ---------- */
+
+function hideAll() {
+  [viewSetup, viewAdminLogin, viewAdmin, viewLogin, viewDevices].forEach((v) => {
+    v.hidden = true;
+  });
+}
+const showSetup = () => { hideAll(); viewSetup.hidden = false; };
+const showAdminLogin = () => { hideAll(); viewAdminLogin.hidden = false; };
+const showAdminPanel = () => { hideAll(); viewAdmin.hidden = false; };
+const showViewerLogin = () => { hideAll(); viewLogin.hidden = false; };
+function showDevices() {
+  hideAll();
+  viewDevices.hidden = false;
+  adminBtn.hidden = false;
+}
 
 /* ---------- 平台图标 ---------- */
 
@@ -19,7 +42,6 @@ const PLATFORM_META = {
   linux: { label: "Linux", icon: "🐧" },
   android: { label: "Android", icon: "🤖" },
 };
-
 function platformMeta(p) {
   return PLATFORM_META[p] || { label: p, icon: "📟" };
 }
@@ -37,7 +59,7 @@ function formatDuration(startedAt, now) {
   return m ? `已持续 ${h} 小时 ${m} 分钟` : `已持续 ${h} 小时`;
 }
 
-/* ---------- 渲染 ---------- */
+/* ---------- 设备渲染 ---------- */
 
 function renderSnapshot(devices) {
   lastDevices = devices;
@@ -88,7 +110,7 @@ function updateCard(card, d) {
   const dot = card.querySelector(".status-dot");
   dot.classList.toggle("status-dot--online", d.online);
   card.querySelector(".status-label").textContent = d.online ? "在线" : "离线";
-  card.querySelector(".device__app").textContent = d.app || "未知";
+  card.querySelector(".device__app").textContent = d.app || "等待设备上线";
   card.querySelector(".device__window").textContent = d.window_title || "";
   const metaEl = card.querySelector(".device__meta");
   metaEl.innerHTML = "";
@@ -99,7 +121,7 @@ function updateCard(card, d) {
     metaEl.appendChild(since);
   } else {
     const last = document.createElement("span");
-    last.textContent = lastSeenText(d.last_seen);
+    last.textContent = d.last_seen ? lastSeenText(d.last_seen) : "尚未上报";
     metaEl.appendChild(last);
   }
 }
@@ -109,7 +131,6 @@ function lastSeenText(lastSeen) {
   return mins < 60 ? `${mins} 分钟前离线` : `${Math.floor(mins / 60)} 小时前离线`;
 }
 
-/* 每 30 秒刷新一次"已持续"计数 */
 setInterval(() => {
   for (const d of lastDevices) {
     if (d.online && cards.has(d.device_id)) {
@@ -119,18 +140,7 @@ setInterval(() => {
   }
 }, 30_000);
 
-/* ---------- 登录 ---------- */
-
-function showLogin() {
-  viewDevices.hidden = true;
-  viewLogin.hidden = false;
-  $("password").focus();
-}
-
-function showDevices() {
-  viewLogin.hidden = true;
-  viewDevices.hidden = false;
-}
+/* ---------- 查看者登录 ---------- */
 
 $("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -144,12 +154,11 @@ $("login-form").addEventListener("submit", async (e) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password: $("password").value }),
     });
-  } catch (e2) {
+  } catch {
     err.textContent = "无法连接服务器";
     err.hidden = false;
     return;
   }
-
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     err.textContent = data.error || "登录失败";
@@ -157,8 +166,6 @@ $("login-form").addEventListener("submit", async (e) => {
     return;
   }
 
-  // 登录成功：立即隐藏密码框并清空密码，再加载状态。
-  // 状态加载失败也靠轮询重试，不再退回登录框。
   $("password").value = "";
   showDevices();
   connectWS();
@@ -166,6 +173,144 @@ $("login-form").addEventListener("submit", async (e) => {
     await loadState();
   } catch {
     startPolling();
+  }
+});
+
+/* ---------- 管理员：初始化 / 登录 ---------- */
+
+$("setup-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("setup-error");
+  err.hidden = true;
+  const res = await fetch("/api/admin/setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: $("setup-password").value }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    err.textContent = data.error || "初始化失败";
+    err.hidden = false;
+    return;
+  }
+  $("setup-password").value = "";
+  await openAdminPanel();
+});
+
+$("admin-login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("admin-login-error");
+  err.hidden = true;
+  const res = await fetch("/api/admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: $("admin-password").value }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    err.textContent = data.error || "登录失败";
+    err.hidden = false;
+    return;
+  }
+  $("admin-password").value = "";
+  await openAdminPanel();
+});
+
+adminBtn.addEventListener("click", async () => {
+  try {
+    const status = await (await fetch("/api/admin/status")).json();
+    if (!status.initialized) {
+      showSetup();
+      return;
+    }
+    await openAdminPanel();
+  } catch {
+    showAdminLogin();
+  }
+});
+
+$("admin-back").addEventListener("click", async () => {
+  try {
+    await loadState();
+    showDevices();
+    connectWS();
+  } catch {
+    showViewerLogin();
+  }
+});
+
+/* ---------- 管理面板 ---------- */
+
+async function openAdminPanel() {
+  const res = await fetch("/api/admin/devices");
+  if (res.status === 401) {
+    showAdminLogin();
+    return;
+  }
+  renderAdminDevices((await res.json()).devices || []);
+  showAdminPanel();
+}
+
+function renderAdminDevices(devices) {
+  const list = $("admin-devices");
+  list.innerHTML = "";
+  $("admin-empty").hidden = devices.length > 0;
+  for (const d of devices) {
+    const row = document.createElement("div");
+    row.className = "admin-device";
+    row.innerHTML = `
+      <div class="admin-device__info">
+        <div class="admin-device__name"></div>
+        <div class="admin-device__token"></div>
+      </div>
+      <div class="admin-device__actions">
+        <button class="md-button md-button--text copy-token">复制 token</button>
+        <button class="md-button md-button--text delete-device">删除</button>
+      </div>`;
+    row.querySelector(".admin-device__name").textContent = d.name;
+    row.querySelector(".admin-device__token").textContent = d.token;
+    row.querySelector(".copy-token").addEventListener("click", () => {
+      navigator.clipboard.writeText(d.token).then(() => {
+        row.querySelector(".copy-token").textContent = "已复制 ✓";
+        setTimeout(() => (row.querySelector(".copy-token").textContent = "复制 token"), 1200);
+      });
+    });
+    row.querySelector(".delete-device").addEventListener("click", async () => {
+      if (!confirm(`删除设备「${d.name}」？其 token 将失效。`)) return;
+      await fetch(`/api/admin/devices/${encodeURIComponent(d.id)}`, { method: "DELETE" });
+      openAdminPanel();
+    });
+    list.appendChild(row);
+  }
+}
+
+$("add-device").addEventListener("click", async () => {
+  const name = $("new-device-name").value.trim();
+  if (!name) return;
+  const res = await fetch("/api/admin/devices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (res.ok) {
+    $("new-device-name").value = "";
+    openAdminPanel();
+  }
+});
+$("new-device-name").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("add-device").click();
+});
+
+$("viewer-pw-save").addEventListener("click", async () => {
+  const res = await fetch("/api/admin/viewer-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: $("viewer-password").value }),
+  });
+  if (res.ok) {
+    const hint = $("viewer-pw-hint");
+    hint.hidden = false;
+    setTimeout(() => (hint.hidden = true), 2000);
   }
 });
 
@@ -179,12 +324,23 @@ async function loadState() {
 }
 
 async function init() {
+  let status;
+  try {
+    status = await (await fetch("/api/admin/status")).json();
+  } catch {
+    showSetup();
+    return;
+  }
+  if (!status.initialized) {
+    showSetup();
+    return;
+  }
   try {
     await loadState();
     showDevices();
     connectWS();
-  } catch (e) {
-    if (e.message === "unauthorized") showLogin();
+  } catch {
+    showViewerLogin();
   }
 }
 
@@ -221,7 +377,6 @@ function connectWS() {
   ws.onclose = () => {
     ws = null;
     startPolling();
-    // 指数退避重连
     const delay = Math.min(30, 1.5 ** wsTries) * 1000;
     wsTries++;
     setTimeout(connectWS, delay);

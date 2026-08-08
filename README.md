@@ -23,17 +23,15 @@
 
 #### Docker
 
-复制 `server/docker-compose.yml` 以及 `server/.env.example` 到工作目录
-
-```bash
-mv .env.example .env
-```
-
-修改 `.env` 文件，设定 token 和 网页密码
+复制 `server/docker-compose.yml` 以及 `server/.env.example` 到工作目录：
 
 ```bash
 docker compose up -d
 ```
+
+**首次打开网页会引导设置管理员密码**。之后在管理面板（页面右上角「管理员」）里：
+添加设备（自动生成每设备 token，填到客户端配置）、设置网页查看密码。
+数据（管理员、设备、token）持久化在 `./data/data.json`（compose 已挂载卷）。
 
 打开 `http://<host>:8080` 即可看到查看页。
 
@@ -44,10 +42,11 @@ docker compose up -d
 
 | 环境变量 | 必填 | 说明 |
 | --- | --- | --- |
-| `REPORT_TOKEN` | 是 | 设备上报鉴权 token，与客户端配置一致 |
-| `VIEWER_PASSWORD` | 否 | 设置后查看网页需先输入密码（会话 24h） |
+| `DATA_FILE` | 否 | 持久化数据文件路径（管理员/设备/token），默认 `data.json`；Docker 内为 `/data/data.json` |
 | `PORT` | 否 | 监听端口，默认 `8080` |
 | `IDLE_TIMEOUT` | 否 | 超过该时长无上报判为离线，默认 `30s` |
+
+> 设备上报 token、网页查看密码不再用环境变量，统一在管理面板配置。
 
 ### 客户端
 

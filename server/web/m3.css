@@ -421,6 +421,80 @@ body {
   background: var(--md-on-primary);
 }
 
+/* ---------- 管理面板 ---------- */
+
+.admin-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-head .headline {
+  margin: 0;
+  flex: 1;
+}
+
+.admin-section {
+  margin-bottom: 16px;
+}
+
+.admin-section .title {
+  font: var(--md-tp-title-medium);
+  margin: 0 0 12px;
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-field {
+  flex: 1;
+}
+
+.admin-empty {
+  padding: 16px 0 8px;
+}
+
+.admin-device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--md-surface-container);
+  border-radius: var(--md-shape-md);
+  padding: 12px 14px;
+}
+
+.admin-device__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-device__name {
+  font: var(--md-tp-title-medium);
+}
+
+.admin-device__token {
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+  word-break: break-all;
+}
+
+.admin-device__actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 /* ---------- 设置表单（桌面端复用） ---------- */
 
 .settings-form {

@@ -5,10 +5,14 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+    volumes:
+      # 持久化：管理员密码、设备与 token 存于 ./data/data.json
+      - ./data:/data
     environment:
-      # 必填：设备上报 token（与客户端配置一致）。未设置会直接报错，避免用已知弱凭据上线
-      REPORT_TOKEN: ${REPORT_TOKEN:?请在环境变量或 .env 中设置 REPORT_TOKEN}
-      # 可选：网页查看密码（不设则页面免密）
-      VIEWER_PASSWORD: ${VIEWER_PASSWORD:-}
+      # 数据文件路径（默认 /data/data.json，配合上面的卷挂载）
+      DATA_FILE: /data/data.json
       # 可选：离线判定阈值
       IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
+
+      # 说明：管理员密码、网页查看密码、设备 token 均通过网页管理面板管理并持久化，
+      # 不再需要 REPORT_TOKEN / VIEWER_PASSWORD 环境变量。首次打开网页会引导设置管理员。
