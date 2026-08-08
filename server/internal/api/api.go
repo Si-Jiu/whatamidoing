@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"sort"
 	"strings"
@@ -48,10 +49,12 @@ type Server struct {
 	hub            *hub.Hub
 	viewerSessions *sessionStore
 	adminSessions  *sessionStore
+	setupToken     string
+	authThrottle   *ipThrottle // 认证端点防暴力破解
 }
 
 // New builds the HTTP handler for the whole server.
-func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, assets fs.FS) http.Handler {
+func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, setupToken string, assets fs.FS) http.Handler {
 	s := &Server{
 		cfg:            cfg,
 		store:          st,
@@ -59,6 +62,8 @@ func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, assets 
 		hub:            h,
 		viewerSessions: newSessionStore(),
 		adminSessions:  newSessionStore(),
+		setupToken:     setupToken,
+		authThrottle:   newIPThrottle(),
 	}
 	go s.runOfflineDetector()
 
@@ -100,10 +105,20 @@ func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "管理员已初始化")
 		return
 	}
+	if err := s.authThrottle.check(clientIP(r)); err != nil {
+		writeError(w, http.StatusTooManyRequests, err.Error())
+		return
+	}
 	var in struct {
-		Password string `json:"password"`
+		SetupToken string `json:"setup_token"`
+		Password   string `json:"password"`
 	}
 	if !decodeJSON(w, r, &in) {
+		return
+	}
+	if s.setupToken == "" || in.SetupToken != s.setupToken {
+		s.authThrottle.fail(clientIP(r))
+		writeError(w, http.StatusUnauthorized, "初始化令牌错误（见服务端启动日志）")
 		return
 	}
 	if len(in.Password) < 6 {
@@ -128,6 +143,10 @@ func (s *Server) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "尚未初始化")
 		return
 	}
+	if err := s.authThrottle.check(clientIP(r)); err != nil {
+		writeError(w, http.StatusTooManyRequests, err.Error())
+		return
+	}
 	var in struct {
 		Password string `json:"password"`
 	}
@@ -136,9 +155,11 @@ func (s *Server) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := s.data.AdminPasswordHash()
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) != nil {
+		s.authThrottle.fail(clientIP(r))
 		writeError(w, http.StatusUnauthorized, "密码错误")
 		return
 	}
+	s.authThrottle.success(clientIP(r))
 	s.setAdminCookie(w, r)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
@@ -301,6 +322,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "未启用查看密码")
 		return
 	}
+	if err := s.authThrottle.check(clientIP(r)); err != nil {
+		writeError(w, http.StatusTooManyRequests, err.Error())
+		return
+	}
 	var in struct {
 		Password string `json:"password"`
 	}
@@ -308,9 +333,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) != nil {
+		s.authThrottle.fail(clientIP(r))
 		writeError(w, http.StatusUnauthorized, "密码错误")
 		return
 	}
+	s.authThrottle.success(clientIP(r))
 	s.setViewerCookie(w, r)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
@@ -446,6 +473,73 @@ func setSessionCookie(w http.ResponseWriter, r *http.Request, name, value string
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int((24 * time.Hour).Seconds()),
 	})
+}
+
+// --- 认证限流（防暴力破解）---
+
+const (
+	maxAuthFails = 5
+	authLockTime = 5 * time.Minute
+)
+
+// ipThrottle 按来源 IP 记录认证失败次数，超过阈值后临时锁定。
+type ipThrottle struct {
+	mu       sync.Mutex
+	fails    map[string]int
+	lockedAt map[string]time.Time
+}
+
+func newIPThrottle() *ipThrottle {
+	return &ipThrottle{
+		fails:    make(map[string]int),
+		lockedAt: make(map[string]time.Time),
+	}
+}
+
+// check 返回是否允许本次尝试；锁定中返回错误。
+func (t *ipThrottle) check(ip string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if at, ok := t.lockedAt[ip]; ok {
+		if time.Since(at) < authLockTime {
+			return errors.New("尝试次数过多，请 5 分钟后再试")
+		}
+		delete(t.lockedAt, ip)
+		delete(t.fails, ip)
+	}
+	return nil
+}
+
+func (t *ipThrottle) fail(ip string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.fails[ip]++
+	if t.fails[ip] >= maxAuthFails {
+		t.lockedAt[ip] = time.Now()
+		delete(t.fails, ip)
+	}
+}
+
+func (t *ipThrottle) success(ip string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.fails, ip)
+	delete(t.lockedAt, ip)
+}
+
+// clientIP 优先取 X-Forwarded-For（反代/Cloudflare 场景），否则取对端地址。
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if i := strings.Index(xff, ","); i > 0 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
 }
 
 // --- message + JSON helpers ---

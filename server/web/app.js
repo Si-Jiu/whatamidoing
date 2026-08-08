@@ -185,7 +185,10 @@ $("setup-form").addEventListener("submit", async (e) => {
   const res = await fetch("/api/admin/setup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password: $("setup-password").value }),
+    body: JSON.stringify({
+      setup_token: $("setup-token").value,
+      password: $("setup-password").value,
+    }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

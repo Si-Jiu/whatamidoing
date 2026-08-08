@@ -11,6 +11,8 @@ services:
     environment:
       # 数据文件路径（默认 /data/data.json，配合上面的卷挂载）
       DATA_FILE: /data/data.json
+      # 可选：首次初始化管理员的令牌（不设则随机生成并打印到 docker logs）
+      # SETUP_TOKEN: change-me
       # 可选：离线判定阈值
       IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
 

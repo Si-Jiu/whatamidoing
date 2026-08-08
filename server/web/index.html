@@ -20,6 +20,11 @@
     <section id="view-setup" class="login" hidden>
       <form class="md-card login__card" id="setup-form">
         <h1 class="headline">设置管理员密码</h1>
+        <p class="settings-desc">初始化令牌在服务端启动日志里（Docker 用 <code>docker logs &lt;容器&gt;</code> 查看）。</p>
+        <div class="md-field">
+          <label for="setup-token">初始化令牌</label>
+          <input id="setup-token" type="text" autocomplete="off" required>
+        </div>
         <div class="md-field">
           <label for="setup-password">管理员密码（至少 6 位）</label>
           <input id="setup-password" type="password" autocomplete="new-password" required>

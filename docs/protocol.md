@@ -122,7 +122,7 @@ WS /ws
 | 方法 & 路径 | 说明 |
 |---|---|
 | `GET /api/admin/status` | 返回 `{"initialized": bool}`（是否已设管理员）。 |
-| `POST /api/admin/setup` | 首次初始化 `{"password":"..."}`；成功后写入 `admin_session`。已初始化返回 `409`。 |
+| `POST /api/admin/setup` | 首次初始化 `{"setup_token":"...","password":"..."}`（令牌见服务端启动日志，或 `SETUP_TOKEN` 环境变量）；成功后写入 `admin_session`。已初始化返回 `409`。 |
 | `POST /api/admin/login` | `{"password":"..."}` → `admin_session`。 |
 | `GET /api/admin/devices` | 设备列表 `{"devices":[{id,name,token}]}`。 |
 | `POST /api/admin/devices` | 添加设备 `{"name":"..."}` → 返回新设备（含自动生成的 `token`）。 |
