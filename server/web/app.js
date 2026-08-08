@@ -44,10 +44,20 @@ const PLATFORM_META = {
 };
 
 const DISTRO_META = {
+  alpinelinux: { label: "Alpine Linux", icon: "distro/alpinelinux" },
   archlinux: { label: "Arch Linux", icon: "distro/archlinux" },
   cachyos: { label: "CachyOS", icon: "distro/cachyos" },
+  centos: { label: "CentOS", icon: "distro/centos" },
   debian: { label: "Debian", icon: "distro/debian" },
+  deepin: { label: "deepin", icon: "distro/deepin" },
+  fedora: { label: "Fedora", icon: "distro/fedora" },
+  linuxmint: { label: "Linux Mint", icon: "distro/linuxmint" },
+  manjaro: { label: "Manjaro", icon: "distro/manjaro" },
   nixos: { label: "NixOS", icon: "distro/nixos" },
+  opensuse: { label: "openSUSE", icon: "distro/opensuse" },
+  popos: { label: "Pop!_OS", icon: "distro/popos" },
+  redhat: { label: "Red Hat", icon: "distro/redhat" },
+  rockylinux: { label: "Rocky Linux", icon: "distro/rockylinux" },
   steamos: { label: "SteamOS", icon: "distro/steamos" },
   ubuntu: { label: "Ubuntu", icon: "distro/ubuntu" },
 };
