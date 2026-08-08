@@ -72,10 +72,24 @@
 
       <div class="md-card admin-section">
         <h2 class="title">设备管理</h2>
-        <div class="admin-row">
+        <div class="admin-row admin-row--wrap">
           <div class="md-field admin-field">
             <label for="new-device-name">设备名称</label>
             <input id="new-device-name" type="text" placeholder="我的电脑 / 手机">
+          </div>
+          <div class="md-field admin-field">
+            <label for="new-device-platform">设备类型</label>
+            <select id="new-device-platform">
+              <option value="windows">Windows</option>
+              <option value="macos">macOS</option>
+              <option value="linux" selected>Linux</option>
+              <option value="android">Android</option>
+              <option value="">自定义</option>
+            </select>
+          </div>
+          <div class="md-field admin-field" id="custom-platform-wrap" hidden>
+            <label for="new-device-custom">自定义类型</label>
+            <input id="new-device-custom" type="text" placeholder="如：SteamOS">
           </div>
           <button id="add-device" class="md-button md-button--filled">添加设备</button>
         </div>

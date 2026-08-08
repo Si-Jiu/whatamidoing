@@ -34,16 +34,23 @@ function showDevices() {
   adminBtn.hidden = false;
 }
 
-/* ---------- 平台图标 ---------- */
+/* ---------- 平台图标（SVG 文件在 assets/ 下） ---------- */
 
 const PLATFORM_META = {
-  windows: { label: "Windows", icon: "🪟" },
-  macos: { label: "macOS", icon: "" },
-  linux: { label: "Linux", icon: "🐧" },
-  android: { label: "Android", icon: "🤖" },
+  windows: { label: "Windows", icon: "windows" },
+  macos: { label: "macOS", icon: "macos" },
+  linux: { label: "Linux", icon: "linux" },
+  android: { label: "Android", icon: "android" },
 };
+
 function platformMeta(p) {
-  return PLATFORM_META[p] || { label: p, icon: "📟" };
+  return PLATFORM_META[p] || { label: p || "其他", icon: "custom" };
+}
+
+/** 平台 logo（mask 着色：颜色跟随 currentColor，图标文件在 assets/） */
+function platformLogo(p) {
+  const id = platformMeta(p).icon;
+  return `<span class="device__logo" style="--platform-logo:url('assets/platform-${id}.svg')" aria-hidden="true"></span>`;
 }
 
 /* ---------- 时长格式化 ---------- */
@@ -92,10 +99,10 @@ function createCard(d) {
 }
 
 function updateCard(card, d) {
-  const meta = platformMeta(d.platform);
   card.className = `md-card device${d.online ? "" : " device--offline"}`;
   card.innerHTML = `
     <div class="device__header">
+      <span class="device__logo-wrap">${platformLogo(d.platform)}</span>
       <span class="device__name"></span>
       <span class="device__platform"></span>
       <span class="device__status"><span class="status-dot"></span><span class="status-label"></span></span>
@@ -106,11 +113,11 @@ function updateCard(card, d) {
   `;
   card.querySelector(".device__name").textContent = d.device_name || "未命名设备";
   const plat = card.querySelector(".device__platform");
-  plat.textContent = `${meta.icon} ${meta.label}`;
+  plat.textContent = platformMeta(d.platform).label;
   const dot = card.querySelector(".status-dot");
   dot.classList.toggle("status-dot--online", d.online);
   card.querySelector(".status-label").textContent = d.online ? "在线" : "离线";
-  card.querySelector(".device__app").textContent = d.app || "等待设备上线";
+  card.querySelector(".device__app").textContent = d.app || "离线";
   card.querySelector(".device__window").textContent = d.window_title || "";
   const metaEl = card.querySelector(".device__meta");
   metaEl.innerHTML = "";
@@ -127,7 +134,9 @@ function updateCard(card, d) {
 }
 
 function lastSeenText(lastSeen) {
-  const mins = Math.max(1, Math.round((Date.now() - Date.parse(lastSeen)) / 60000));
+  const t = Date.parse(lastSeen);
+  if (!t || isNaN(t)) return "尚未上报";
+  const mins = Math.max(1, Math.round((Date.now() - t) / 60000));
   return mins < 60 ? `${mins} 分钟前离线` : `${Math.floor(mins / 60)} 小时前离线`;
 }
 
@@ -270,7 +279,14 @@ function renderAdminDevices(devices) {
         <button class="md-button md-button--text copy-token">复制 token</button>
         <button class="md-button md-button--text delete-device">删除</button>
       </div>`;
-    row.querySelector(".admin-device__name").textContent = d.name;
+    const nameEl = row.querySelector(".admin-device__name");
+    nameEl.textContent = d.name;
+    if (d.platform) {
+      const badge = document.createElement("span");
+      badge.className = "admin-device__platform";
+      badge.textContent = platformMeta(d.platform).label;
+      nameEl.appendChild(badge);
+    }
     row.querySelector(".admin-device__token").textContent = d.token;
     row.querySelector(".copy-token").addEventListener("click", () => {
       navigator.clipboard.writeText(d.token).then(() => {
@@ -287,16 +303,28 @@ function renderAdminDevices(devices) {
   }
 }
 
+$("new-device-platform").addEventListener("change", () => {
+  const custom = $("new-device-platform").value === "";
+  $("custom-platform-wrap").hidden = !custom;
+  if (custom) $("new-device-custom").focus();
+});
+
 $("add-device").addEventListener("click", async () => {
   const name = $("new-device-name").value.trim();
   if (!name) return;
+  let platform = $("new-device-platform").value;
+  if (platform === "") {
+    platform = $("new-device-custom").value.trim();
+    if (!platform) return;
+  }
   const res = await fetch("/api/admin/devices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, platform }),
   });
   if (res.ok) {
     $("new-device-name").value = "";
+    $("new-device-custom").value = "";
     openAdminPanel();
   }
 });

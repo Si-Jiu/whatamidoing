@@ -5,7 +5,7 @@
 
 ## 枚举
 
-- `platform`：`windows` | `macos` | `linux` | `android`
+- `platform`：`windows` | `macos` | `linux` | `android`，或在管理面板注册设备时使用**自定义类型**（最多 24 字符，如 `SteamOS`）。
 - 时间戳一律使用 **RFC 3339**（如 `2026-08-08T09:30:00Z`）。
 
 ## 鉴权模型
@@ -79,6 +79,8 @@ GET /api/v1/state
 ```
 
 - 返回**管理面板注册的全部设备**；未上报过的设备显示 `online: false`、`app` 为空。
+- `platform`：以**管理面板注册时选择的类型**为准（优先于客户端上报的值）；注册时未选
+  则回退到客户端上报的 `platform`。
 - `online`：`last_seen` 距今超过 `IDLE_TIMEOUT`（默认 30s）即为 `false`。
 - 未设置网页密码时无需认证；设置后需要 `viewer_session` cookie（见登录）。
 
@@ -124,8 +126,8 @@ WS /ws
 | `GET /api/admin/status` | 返回 `{"initialized": bool}`（是否已设管理员）。 |
 | `POST /api/admin/setup` | 首次初始化 `{"setup_token":"...","password":"..."}`（令牌见服务端启动日志，或 `SETUP_TOKEN` 环境变量）；成功后写入 `admin_session`。已初始化返回 `409`。 |
 | `POST /api/admin/login` | `{"password":"..."}` → `admin_session`。 |
-| `GET /api/admin/devices` | 设备列表 `{"devices":[{id,name,token}]}`。 |
-| `POST /api/admin/devices` | 添加设备 `{"name":"..."}` → 返回新设备（含自动生成的 `token`）。 |
+| `GET /api/admin/devices` | 设备列表 `{"devices":[{id,name,platform,token}]}`。 |
+| `POST /api/admin/devices` | 添加设备 `{"name":"...","platform":"linux"}` → 返回新设备（含自动生成的 `token`）。`platform` 可为枚举值或自定义类型（最多 24 字符），缺省为空。 |
 | `DELETE /api/admin/devices/{id}` | 删除设备（其 token 即失效）。 |
 | `POST /api/admin/viewer-password` | 设置网页查看密码 `{"password":"..."}`；空字符串清除（免密）。 |
 

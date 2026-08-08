@@ -51,7 +51,7 @@ type Server struct {
 	viewerSessions *sessionStore
 	adminSessions  *sessionStore
 	setupToken     string
-	authThrottle   *ipThrottle     // 认证端点防暴力破解
+	authThrottle   *ipThrottle    // 认证端点防暴力破解
 	trustedProxies []netip.Prefix // 可信反向代理（限流时才信任 X-Forwarded-For）
 }
 
@@ -173,7 +173,8 @@ func (s *Server) handleAdminDevices(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleAdminAddDevice(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Name string `json:"name"`
+		Name     string `json:"name"`
+		Platform string `json:"platform"`
 	}
 	if !decodeJSON(w, r, &in) {
 		return
@@ -183,7 +184,12 @@ func (s *Server) handleAdminAddDevice(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "设备名称不能为空")
 		return
 	}
-	dev, err := s.data.AddDevice(name)
+	platform := strings.TrimSpace(in.Platform)
+	if platform != "" && !validPlatforms[platform] && len(platform) > 24 {
+		writeError(w, http.StatusBadRequest, "自定义设备类型最多 24 字符")
+		return
+	}
+	dev, err := s.data.AddDevice(name, platform)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "保存失败")
 		return
@@ -293,6 +299,7 @@ func bearerToken(r *http.Request) string {
 // --- 查看 ---
 
 // allDevices 返回管理面板注册的所有设备及其实时状态（未上报的显示离线）。
+// 平台以管理面板注册的为准（优先于客户端上报，离线时也能显示平台）。
 func (s *Server) allDevices() []store.DeviceState {
 	liveMap := make(map[string]store.DeviceState, 8)
 	for _, d := range s.store.List() {
@@ -302,11 +309,15 @@ func (s *Server) allDevices() []store.DeviceState {
 	out := make([]store.DeviceState, 0, len(devices))
 	for _, dev := range devices {
 		if l, ok := liveMap[dev.ID]; ok {
+			if dev.Platform != "" {
+				l.Platform = dev.Platform
+			}
 			out = append(out, l)
 		} else {
 			out = append(out, store.DeviceState{
 				DeviceID:   dev.ID,
 				DeviceName: dev.Name,
+				Platform:   dev.Platform,
 				Online:     false,
 			})
 		}

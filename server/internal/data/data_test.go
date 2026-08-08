@@ -27,7 +27,7 @@ func TestLifecycleAndPersistence(t *testing.T) {
 		t.Error("管理员 hash 不匹配")
 	}
 
-	dev, err := s.AddDevice("我的电脑")
+	dev, err := s.AddDevice("我的电脑", "linux")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,6 +36,9 @@ func TestLifecycleAndPersistence(t *testing.T) {
 	}
 	if !strings.HasPrefix(dev.Token, "tok_") {
 		t.Errorf("token 前缀错误: %q", dev.Token)
+	}
+	if dev.Platform != "linux" {
+		t.Errorf("平台不符: %q", dev.Platform)
 	}
 
 	got, ok := s.DeviceByToken(dev.Token)
@@ -55,7 +58,7 @@ func TestLifecycleAndPersistence(t *testing.T) {
 		t.Error("重载后应仍初始化")
 	}
 	devs := s2.Devices()
-	if len(devs) != 1 || devs[0].Name != "我的电脑" || devs[0].Token != dev.Token {
+	if len(devs) != 1 || devs[0].Name != "我的电脑" || devs[0].Token != dev.Token || devs[0].Platform != "linux" {
 		t.Errorf("重载后设备数据不符: %+v", devs)
 	}
 

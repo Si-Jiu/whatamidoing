@@ -12,9 +12,10 @@ import (
 // Device is a registered device managed in the admin panel.
 // The per-device Token is what the client uses as the report credential.
 type Device struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Token string `json:"token"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Platform string `json:"platform,omitempty"`
+	Token    string `json:"token"`
 }
 
 // Data is the persisted server state.
@@ -129,13 +130,14 @@ func (s *Store) Devices() []Device {
 }
 
 // AddDevice registers a new device with a freshly generated token.
-func (s *Store) AddDevice(name string) (Device, error) {
+func (s *Store) AddDevice(name, platform string) (Device, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	dev := Device{
-		ID:    "dev_" + rand.Text(),
-		Name:  name,
-		Token: "tok_" + rand.Text(),
+		ID:       "dev_" + rand.Text(),
+		Name:     name,
+		Platform: platform,
+		Token:    "tok_" + rand.Text(),
 	}
 	s.d.Devices = append(s.d.Devices, dev)
 	if err := s.save(); err != nil {
