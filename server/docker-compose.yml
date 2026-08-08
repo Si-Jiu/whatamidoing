@@ -6,9 +6,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # 必填：设备上报 token（与客户端配置一致）
-      REPORT_TOKEN: "YOUR_TOKEN"
-      # 可选：网页密码
-      VIEWER_PASSWORD: "YOUR_PASSWORD"
+      # 必填：设备上报 token（与客户端配置一致）。未设置会直接报错，避免用已知弱凭据上线
+      REPORT_TOKEN: ${REPORT_TOKEN:?请在环境变量或 .env 中设置 REPORT_TOKEN}
+      # 可选：网页查看密码（不设则页面免密）
+      VIEWER_PASSWORD: ${VIEWER_PASSWORD:-}
       # 可选：离线判定阈值
-      IDLE_TIMEOUT: "30s"
+      IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
