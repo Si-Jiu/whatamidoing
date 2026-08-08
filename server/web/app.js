@@ -44,12 +44,12 @@ const PLATFORM_META = {
 };
 
 const DISTRO_META = {
-  ubuntu: { label: "Ubuntu", icon: "distro-ubuntu" },
-  debian: { label: "Debian", icon: "distro-debian" },
   archlinux: { label: "Arch Linux", icon: "distro-archlinux" },
-  nixos: { label: "NixOS", icon: "distro-nixos" },
   cachyos: { label: "CachyOS", icon: "distro-cachyos" },
+  debian: { label: "Debian", icon: "distro-debian" },
+  nixos: { label: "NixOS", icon: "distro-nixos" },
   steamos: { label: "SteamOS", icon: "distro-steamos" },
+  ubuntu: { label: "Ubuntu", icon: "distro-ubuntu" },
 };
 
 function platformMeta(p) {
