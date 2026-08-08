@@ -374,6 +374,30 @@ body {
   color: var(--md-primary);
 }
 
+/* ---------- 图标按钮 ---------- */
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-full);
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--md-surface-container-high);
+}
+
+.icon-btn:active {
+  background: var(--md-surface-container-highest);
+}
+
 /* ---------- 开关（switch） ---------- */
 
 .md-switch {
