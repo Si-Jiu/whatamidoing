@@ -70,7 +70,7 @@ docker compose up -d
 #### 首次使用
 
 - **桌面端**（Windows / macOS / Linux）：托盘图标控制共享开关。
-  首次运行会自动弹出设置窗口：填服务端地址、设备名、设备 ID、上报 token，
+  首次运行会自动弹出设置窗口：填服务端地址、设备 token（管理面板添加设备后复制），
   打开「共享前台状态」开关即可。
 
 - **安卓端**（Android）：安装后打开 App：允许「使用情况访问」
@@ -97,9 +97,9 @@ docker compose up -d
 
 ```bash
 cd server
-go build ./cmd/server           # 产出二进制
-REPORT_TOKEN="YOUR_TOKEN" go run ./cmd/server   # 或直接开发运行
-# 可选：VIEWER_PASSWORD="YOUR_PASSWORD" PORT=8080 IDLE_TIMEOUT=30s
+go build ./cmd/server                  # 产出二进制
+SETUP_TOKEN="YOUR_TOKEN" go run ./cmd/server   # 或直接开发运行（首次初始化需要）
+# 可选：PORT=8080 IDLE_TIMEOUT=30s TRUSTED_PROXIES=10.0.0.0/8
 ```
 
 需要 Go 1.26+。交叉编译（在任意平台出 Linux 产物）：
@@ -151,6 +151,28 @@ cd clients/android
 Design 3。Miuix 要求 AGP 9 / compileSdk 37，构建需较新工具链（见
 `clients/android/build.gradle.kts`）。
 
+## 本地调试
+
+`scripts/debug-server.sh` 提供独立的调试服务端（端口 9090，不干扰正式部署）：
+
+```bash
+cd scripts
+./debug-server.sh start     # 启动（页面 http://localhost:9090，Go 源码有改动自动重编译）
+./debug-server.sh stop      # 停止
+./debug-server.sh restart   # 重启
+./debug-server.sh reset     # 清空数据重新初始化
+./debug-server.sh log       # 跟踪日志
+```
+
+- 首次初始化令牌固定为 `debug-setup-token`；数据、日志与 PID 保存在系统指定缓存目录
+  （Linux `~/.cache`、macOS `~/Library/Caches`，可用 `WAID_DEBUG_DIR` 覆盖改目录）。
+- 该服务器以**实时模式**提供前端（`WAID_DEV_WEB_DIR`）：修改 `server/web/`
+  下的 `index.html` / `m3.css` / `app.js` 后**刷新页面即生效**，无需重新编译；
+  Go 代码改动会在下次启动时自动重编译。
+- 让客户端上报到调试服：把 `~/.config/whatamidoing/config.json` 的 `server_url`
+  改为 `http://localhost:9090`，token 用调试服管理面板添加设备后生成的。
+- 生产镜像不受影响：`WAID_DEV_WEB_DIR` 未设置时仍使用内嵌资源。
+
 ## 已知平台限制
 
 | 平台 | 说明 |
@@ -176,6 +198,7 @@ docs/protocol.md   共享协议
 ## 隐私说明
 
 - 只传输前台应用名与窗口标题的**文字**，无截图、无音频。
-- 数据仅存于服务端内存，重启即清空；不落盘。
-- 页面访问可设置密码（`VIEWER_PASSWORD`）；设备上报用 `REPORT_TOKEN` 鉴权。
+- 实时状态仅存于服务端内存；管理员、设备与 token 持久化在 `data/data.json`
+  （权限 0600），可随时删除。
+- 页面访问可设置网页查看密码、设备上报用每设备 token（均在管理面板配置）。
 - 自托管，数据不出你的服务器。
