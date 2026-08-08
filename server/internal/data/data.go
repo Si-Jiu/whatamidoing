@@ -61,7 +61,8 @@ func (s *Store) load() error {
 
 func (s *Store) save() error {
 	if dir := filepath.Dir(s.path); dir != "" {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		// 数据含密码 hash 与设备 token，目录仅属主可读写。
+		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return err
 		}
 	}
@@ -70,8 +71,9 @@ func (s *Store) save() error {
 		return err
 	}
 	// 原子写：先写临时文件再改名，避免进程中断损坏数据。
+	// 0o600 仅属主可读写，防止同机其他用户读取凭据。
 	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+	if err := os.WriteFile(tmp, b, 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, s.path)
