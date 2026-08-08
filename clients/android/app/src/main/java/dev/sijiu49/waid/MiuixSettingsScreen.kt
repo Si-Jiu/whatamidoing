@@ -29,8 +29,6 @@ import top.yukonga.miuix.kmp.basic.TextField
 @Composable
 fun MiuixSettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
     var serverUrl by rememberSaveable { mutableStateOf(cfg.serverUrl) }
-    var deviceName by rememberSaveable { mutableStateOf(cfg.deviceName) }
-    var deviceId by rememberSaveable { mutableStateOf(cfg.deviceId) }
     var token by rememberSaveable { mutableStateOf(cfg.token) }
     var interval by rememberSaveable { mutableStateOf(cfg.intervalSecs.toString()) }
     var enabled by rememberSaveable { mutableStateOf(cfg.enabled) }
@@ -77,21 +75,9 @@ fun MiuixSettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
             TextField(
-                value = deviceName,
-                onValueChange = { deviceName = it },
-                label = "设备名称",
-                modifier = Modifier.fillMaxWidth()
-            )
-            TextField(
-                value = deviceId,
-                onValueChange = { deviceId = it },
-                label = "设备 ID",
-                modifier = Modifier.fillMaxWidth()
-            )
-            TextField(
                 value = token,
                 onValueChange = { token = it },
-                label = "上报 Token",
+                label = "设备 Token（管理面板添加设备后复制）",
                 modifier = Modifier.fillMaxWidth()
             )
             TextField(
@@ -104,8 +90,6 @@ fun MiuixSettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
             Button(
                 onClick = {
                     cfg.serverUrl = serverUrl.trim()
-                    cfg.deviceName = deviceName.trim()
-                    cfg.deviceId = deviceId.trim()
                     cfg.token = token.trim()
                     cfg.intervalSecs = interval.toIntOrNull() ?: 5
                     saved = true

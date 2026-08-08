@@ -92,9 +92,8 @@ class Reporter(private val context: Context) {
 
     private fun report(cfg: ConfigStore, app: String) {
         val url = cfg.serverUrl.trimEnd('/') + "/api/v1/report"
+        // 设备身份由服务端按 token 确定，无需上报 device_id/device_name
         val body = JSONObject()
-            .put("device_id", cfg.deviceId)
-            .put("device_name", cfg.deviceName)
             .put("platform", "android")
             .put("app", app)
             .put("window_title", "")

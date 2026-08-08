@@ -67,9 +67,8 @@ pub fn run(cfg: Arc<Mutex<ClientConfig>>) {
 
 fn report(client: &reqwest::blocking::Client, c: &ClientConfig, info: &ForegroundInfo, started: chrono::DateTime<chrono::Utc>) {
     let url = format!("{}/api/v1/report", c.server_url.trim_end_matches('/'));
+    // 设备身份由服务端按 token 确定，无需上报 device_id/device_name
     let body = serde_json::json!({
-        "device_id": c.device_id,
-        "device_name": c.device_name,
         "platform": foreground::platform(),
         "app": info.app,
         "window_title": info.window_title,

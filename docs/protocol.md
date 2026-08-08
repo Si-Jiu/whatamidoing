@@ -29,8 +29,6 @@ Content-Type: application/json
 
 ```json
 {
-  "device_id":     "desktop-main",
-  "device_name":   "我的电脑",
   "platform":      "windows",
   "app":           "Google Chrome",
   "window_title":  "GitHub · whatamidoing",
@@ -40,11 +38,13 @@ Content-Type: application/json
 
 | 字段 | 必填 | 说明 |
 |---|---|---|
-| `device_id` / `device_name` | 否 | 仅作参考，被服务端忽略（身份由 token 决定）。 |
 | `platform` | 是 | 见枚举。 |
 | `app` | 是 | 前台应用显示名。 |
 | `window_title` | 否 | 窗口标题；**Android 恒为空**（无权限读取，见 README 限制）。 |
 | `app_started_at` | 否 | 当前前台应用开始时刻；缺省视为上报时刻。 |
+
+> 客户端**无需**上报 `device_id` / `device_name`——设备身份由 token 决定，显示名取自
+> 管理面板注册的设备。旧客户端仍带这些字段也不影响（服务端忽略）。
 
 语义：
 

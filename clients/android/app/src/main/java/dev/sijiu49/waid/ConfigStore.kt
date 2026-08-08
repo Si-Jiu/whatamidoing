@@ -16,14 +16,6 @@ class ConfigStore(context: Context) {
         get() = prefs.getString("token", "") ?: ""
         set(v) = prefs.edit().putString("token", v).apply()
 
-    var deviceId: String
-        get() = prefs.getString("device_id", "phone") ?: "phone"
-        set(v) = prefs.edit().putString("device_id", v).apply()
-
-    var deviceName: String
-        get() = prefs.getString("device_name", "") ?: ""
-        set(v) = prefs.edit().putString("device_name", v).apply()
-
     var intervalSecs: Int
         get() = prefs.getInt("interval_secs", 5)
         set(v) = prefs.edit().putInt("interval_secs", v.coerceIn(1, 60)).apply()

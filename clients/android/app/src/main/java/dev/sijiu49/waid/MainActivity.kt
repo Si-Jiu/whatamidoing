@@ -107,8 +107,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun SettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
     var serverUrl by rememberSaveable { mutableStateOf(cfg.serverUrl) }
-    var deviceName by rememberSaveable { mutableStateOf(cfg.deviceName) }
-    var deviceId by rememberSaveable { mutableStateOf(cfg.deviceId) }
     var token by rememberSaveable { mutableStateOf(cfg.token) }
     var interval by rememberSaveable { mutableStateOf(cfg.intervalSecs.toString()) }
     var enabled by rememberSaveable { mutableStateOf(cfg.enabled) }
@@ -152,23 +150,9 @@ fun SettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
-                value = deviceName,
-                onValueChange = { deviceName = it },
-                label = { Text("设备名称") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = deviceId,
-                onValueChange = { deviceId = it },
-                label = { Text("设备 ID") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
                 value = token,
                 onValueChange = { token = it },
-                label = { Text("上报 Token") },
+                label = { Text("设备 Token（管理面板添加设备后复制）") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -183,8 +167,6 @@ fun SettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
             Button(
                 onClick = {
                     cfg.serverUrl = serverUrl.trim()
-                    cfg.deviceName = deviceName.trim()
-                    cfg.deviceId = deviceId.trim()
                     cfg.token = token.trim()
                     cfg.intervalSecs = interval.toIntOrNull() ?: 5
                     saved = true
