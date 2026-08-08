@@ -34,7 +34,7 @@ function showDevices() {
   adminBtn.hidden = false;
 }
 
-/* ---------- 平台图标（SVG 文件在 assets/ 下） ---------- */
+/* ---------- 平台/发行版图标（SVG 文件在 assets/ 下） ---------- */
 
 const PLATFORM_META = {
   windows: { label: "Windows", icon: "windows" },
@@ -43,14 +43,39 @@ const PLATFORM_META = {
   android: { label: "Android", icon: "android" },
 };
 
+const DISTRO_META = {
+  ubuntu: { label: "Ubuntu", icon: "distro-ubuntu" },
+  debian: { label: "Debian", icon: "distro-debian" },
+  archlinux: { label: "Arch Linux", icon: "distro-archlinux" },
+  nixos: { label: "NixOS", icon: "distro-nixos" },
+  cachyos: { label: "CachyOS", icon: "distro-cachyos" },
+  steamos: { label: "SteamOS", icon: "distro-steamos" },
+};
+
 function platformMeta(p) {
   return PLATFORM_META[p] || { label: p || "其他", icon: "custom" };
 }
 
-/** 平台 logo（mask 着色：颜色跟随 currentColor，图标文件在 assets/） */
-function platformLogo(p) {
-  const id = platformMeta(p).icon;
-  return `<span class="device__logo" style="--platform-logo:url('assets/platform-${id}.svg')" aria-hidden="true"></span>`;
+function distroMeta(d) {
+  return DISTRO_META[d] || (d ? { label: d, icon: "linux" } : null);
+}
+
+/** 平台显示名；Linux 且登记了发行版时显示"Linux · 发行版" */
+function platformLabel(d) {
+  const base = platformMeta(d.platform).label;
+  if (d.platform === "linux" && d.distro) {
+    const dm = distroMeta(d.distro);
+    return dm ? `${base} · ${dm.label}` : `${base} · ${d.distro}`;
+  }
+  return base;
+}
+
+/** 平台 logo（mask 着色：颜色跟随 currentColor，图标文件在 assets/）。
+ *  Linux 且登记了发行版时用发行版图标。 */
+function platformLogo(d) {
+  const distro = d.platform === "linux" && d.distro ? distroMeta(d.distro) : null;
+  const icon = distro ? distro.icon : platformMeta(d.platform).icon;
+  return `<span class="device__logo" style="--platform-logo:url('assets/${icon}.svg')" aria-hidden="true"></span>`;
 }
 
 /* ---------- 时长格式化 ---------- */
@@ -102,7 +127,7 @@ function updateCard(card, d) {
   card.className = `md-card device${d.online ? "" : " device--offline"}`;
   card.innerHTML = `
     <div class="device__header">
-      <span class="device__logo-wrap">${platformLogo(d.platform)}</span>
+      <span class="device__logo-wrap">${platformLogo(d)}</span>
       <span class="device__name"></span>
       <span class="device__platform"></span>
       <span class="device__status"><span class="status-dot"></span><span class="status-label"></span></span>
@@ -113,7 +138,7 @@ function updateCard(card, d) {
   `;
   card.querySelector(".device__name").textContent = d.device_name || "未命名设备";
   const plat = card.querySelector(".device__platform");
-  plat.textContent = platformMeta(d.platform).label;
+  plat.textContent = platformLabel(d);
   const dot = card.querySelector(".status-dot");
   dot.classList.toggle("status-dot--online", d.online);
   card.querySelector(".status-label").textContent = d.online ? "在线" : "离线";
@@ -284,7 +309,7 @@ function renderAdminDevices(devices) {
     if (d.platform) {
       const badge = document.createElement("span");
       badge.className = "admin-device__platform";
-      badge.textContent = platformMeta(d.platform).label;
+      badge.textContent = platformLabel(d);
       nameEl.appendChild(badge);
     }
     row.querySelector(".admin-device__token").textContent = d.token;
@@ -303,24 +328,32 @@ function renderAdminDevices(devices) {
   }
 }
 
+function syncPlatformFields() {
+  const v = $("new-device-platform").value;
+  $("custom-platform-wrap").hidden = v !== "";
+  $("distro-wrap").hidden = v !== "linux";
+}
 $("new-device-platform").addEventListener("change", () => {
-  const custom = $("new-device-platform").value === "";
-  $("custom-platform-wrap").hidden = !custom;
-  if (custom) $("new-device-custom").focus();
+  syncPlatformFields();
+  if ($("new-device-platform").value === "") $("new-device-custom").focus();
 });
+syncPlatformFields();
 
 $("add-device").addEventListener("click", async () => {
   const name = $("new-device-name").value.trim();
   if (!name) return;
   let platform = $("new-device-platform").value;
+  let distro = "";
   if (platform === "") {
     platform = $("new-device-custom").value.trim();
     if (!platform) return;
+  } else if (platform === "linux") {
+    distro = $("new-device-distro").value;
   }
   const res = await fetch("/api/admin/devices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, platform }),
+    body: JSON.stringify({ name, platform, distro }),
   });
   if (res.ok) {
     $("new-device-name").value = "";

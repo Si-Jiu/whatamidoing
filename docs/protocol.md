@@ -81,6 +81,8 @@ GET /api/v1/state
 - 返回**管理面板注册的全部设备**；未上报过的设备显示 `online: false`、`app` 为空。
 - `platform`：以**管理面板注册时选择的类型**为准（优先于客户端上报的值）；注册时未选
   则回退到客户端上报的 `platform`。
+- `distro`（可选）：仅 `platform: "linux"` 时存在——管理面板注册时选择的 Linux 发行版
+  （如 `ubuntu` / `archlinux` / `cachyos`），查看端据此显示发行版 logo 与名称。
 - `online`：`last_seen` 距今超过 `IDLE_TIMEOUT`（默认 30s）即为 `false`。
 - 未设置网页密码时无需认证；设置后需要 `viewer_session` cookie（见登录）。
 
@@ -127,7 +129,7 @@ WS /ws
 | `POST /api/admin/setup` | 首次初始化 `{"setup_token":"...","password":"..."}`（令牌见服务端启动日志，或 `SETUP_TOKEN` 环境变量）；成功后写入 `admin_session`。已初始化返回 `409`。 |
 | `POST /api/admin/login` | `{"password":"..."}` → `admin_session`。 |
 | `GET /api/admin/devices` | 设备列表 `{"devices":[{id,name,platform,token}]}`。 |
-| `POST /api/admin/devices` | 添加设备 `{"name":"...","platform":"linux"}` → 返回新设备（含自动生成的 `token`）。`platform` 可为枚举值或自定义类型（最多 24 字符），缺省为空。 |
+| `POST /api/admin/devices` | 添加设备 `{"name":"...","platform":"linux","distro":"cachyos"}` → 返回新设备（含自动生成的 `token`）。`platform` 可为枚举值或自定义类型（最多 24 字符），缺省为空；`distro` 可选（最多 24 字符），仅 `platform:"linux"` 时有意义。 |
 | `DELETE /api/admin/devices/{id}` | 删除设备（其 token 即失效）。 |
 | `POST /api/admin/viewer-password` | 设置网页查看密码 `{"password":"..."}`；空字符串清除（免密）。 |
 

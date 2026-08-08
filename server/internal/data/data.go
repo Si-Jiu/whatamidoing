@@ -15,6 +15,7 @@ type Device struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Platform string `json:"platform,omitempty"`
+	Distro   string `json:"distro,omitempty"`
 	Token    string `json:"token"`
 }
 
@@ -130,13 +131,14 @@ func (s *Store) Devices() []Device {
 }
 
 // AddDevice registers a new device with a freshly generated token.
-func (s *Store) AddDevice(name, platform string) (Device, error) {
+func (s *Store) AddDevice(name, platform, distro string) (Device, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	dev := Device{
 		ID:       "dev_" + rand.Text(),
 		Name:     name,
 		Platform: platform,
+		Distro:   distro,
 		Token:    "tok_" + rand.Text(),
 	}
 	s.d.Devices = append(s.d.Devices, dev)

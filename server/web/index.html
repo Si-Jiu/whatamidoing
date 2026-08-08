@@ -91,6 +91,17 @@
             <label for="new-device-custom">自定义类型</label>
             <input id="new-device-custom" type="text" placeholder="如：SteamOS">
           </div>
+          <div class="md-field admin-field" id="distro-wrap" hidden>
+            <label for="new-device-distro">发行版</label>
+            <select id="new-device-distro">
+              <option value="ubuntu">Ubuntu</option>
+              <option value="debian">Debian</option>
+              <option value="archlinux">Arch Linux</option>
+              <option value="nixos">NixOS</option>
+              <option value="cachyos">CachyOS</option>
+              <option value="steamos">SteamOS</option>
+            </select>
+          </div>
           <button id="add-device" class="md-button md-button--filled">添加设备</button>
         </div>
         <p class="empty-text admin-empty" id="admin-empty" hidden>还没有设备，添加一个吧</p>
