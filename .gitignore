@@ -19,3 +19,5 @@ server/whatamidoing-server
 # 编辑器/系统
 .DS_Store
 *.log
+
+.env
