@@ -1,8 +1,10 @@
 package main
 
 import (
+	"io/fs"
 	"log"
 	"net/http"
+	"os"
 
 	"whatamidoing/server/internal/api"
 	"whatamidoing/server/internal/config"
@@ -27,7 +29,17 @@ func main() {
 		log.Fatal("管理员尚未初始化：请先设置 SETUP_TOKEN 环境变量（首次初始化管理员需要），再启动")
 	}
 
-	handler := api.New(cfg, st, h, ds, cfg.SetupToken, web.Files)
+	// 开发模式：从磁盘目录提供前端静态文件，并注入自动刷新脚本——文件一改页面立即重载。
+	var assets fs.FS = web.Files
+	if devDir := os.Getenv("WAID_DEV_WEB_DIR"); devDir != "" {
+		assets = os.DirFS(devDir)
+		log.Printf("开发模式：前端静态资源来自 %s（修改即时生效，页面自动刷新）", devDir)
+	}
+
+	handler := api.New(cfg, st, h, ds, cfg.SetupToken, assets)
+	if devDir := os.Getenv("WAID_DEV_WEB_DIR"); devDir != "" {
+		handler = &devLiveReload{dir: devDir, next: handler}
+	}
 
 	addr := ":" + cfg.Port
 	adminState := "未初始化"
