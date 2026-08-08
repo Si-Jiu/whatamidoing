@@ -13,8 +13,8 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /whatamidoing-server ./
 # ---- runtime stage ----
 FROM scratch
 COPY --from=build /whatamidoing-server /whatamidoing-server
-# 持久化数据目录（管理员/设备/token），用 -v ./data:/data 挂载
-RUN mkdir -p /data
+# 持久化数据目录（管理员/设备/token），compose 用 -v ./data:/data 挂载；
+# 服务端启动时若目录不存在会自行创建。
 EXPOSE 8080
 ENV PORT=8080 DATA_FILE=/data/data.json
 ENTRYPOINT ["/whatamidoing-server"]
