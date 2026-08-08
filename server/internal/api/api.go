@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/netip"
 	"sort"
 	"strings"
 	"sync"
@@ -50,7 +51,8 @@ type Server struct {
 	viewerSessions *sessionStore
 	adminSessions  *sessionStore
 	setupToken     string
-	authThrottle   *ipThrottle // 认证端点防暴力破解
+	authThrottle   *ipThrottle     // 认证端点防暴力破解
+	trustedProxies []netip.Prefix // 可信反向代理（限流时才信任 X-Forwarded-For）
 }
 
 // New builds the HTTP handler for the whole server.
@@ -64,6 +66,7 @@ func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, setupTo
 		adminSessions:  newSessionStore(),
 		setupToken:     setupToken,
 		authThrottle:   newIPThrottle(),
+		trustedProxies: parseTrustedProxies(cfg.TrustedProxies),
 	}
 	go s.runOfflineDetector()
 
@@ -105,7 +108,7 @@ func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "管理员已初始化")
 		return
 	}
-	if err := s.authThrottle.check(clientIP(r)); err != nil {
+	if err := s.authThrottle.check(s.clientIP(r)); err != nil {
 		writeError(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
@@ -117,7 +120,7 @@ func (s *Server) handleAdminSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if s.setupToken == "" || in.SetupToken != s.setupToken {
-		s.authThrottle.fail(clientIP(r))
+		s.authThrottle.fail(s.clientIP(r))
 		writeError(w, http.StatusUnauthorized, "初始化令牌错误（见服务端启动日志）")
 		return
 	}
@@ -143,7 +146,7 @@ func (s *Server) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "尚未初始化")
 		return
 	}
-	if err := s.authThrottle.check(clientIP(r)); err != nil {
+	if err := s.authThrottle.check(s.clientIP(r)); err != nil {
 		writeError(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
@@ -155,11 +158,11 @@ func (s *Server) handleAdminLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := s.data.AdminPasswordHash()
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) != nil {
-		s.authThrottle.fail(clientIP(r))
+		s.authThrottle.fail(s.clientIP(r))
 		writeError(w, http.StatusUnauthorized, "密码错误")
 		return
 	}
-	s.authThrottle.success(clientIP(r))
+	s.authThrottle.success(s.clientIP(r))
 	s.setAdminCookie(w, r)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
@@ -322,7 +325,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "未启用查看密码")
 		return
 	}
-	if err := s.authThrottle.check(clientIP(r)); err != nil {
+	if err := s.authThrottle.check(s.clientIP(r)); err != nil {
 		writeError(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
@@ -333,11 +336,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) != nil {
-		s.authThrottle.fail(clientIP(r))
+		s.authThrottle.fail(s.clientIP(r))
 		writeError(w, http.StatusUnauthorized, "密码错误")
 		return
 	}
-	s.authThrottle.success(clientIP(r))
+	s.authThrottle.success(s.clientIP(r))
 	s.setViewerCookie(w, r)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
@@ -527,19 +530,53 @@ func (t *ipThrottle) success(ip string) {
 	delete(t.lockedAt, ip)
 }
 
-// clientIP 优先取 X-Forwarded-For（反代/Cloudflare 场景），否则取对端地址。
-func clientIP(r *http.Request) string {
+func parseTrustedProxies(list []string) []netip.Prefix {
+	var out []netip.Prefix
+	for _, s := range list {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if p, err := netip.ParsePrefix(s); err == nil {
+			out = append(out, p)
+		} else if a, err := netip.ParseAddr(s); err == nil {
+			out = append(out, netip.PrefixFrom(a, a.BitLen()))
+		}
+	}
+	return out
+}
+
+func (s *Server) isTrustedProxy(ip string) bool {
+	addr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return false
+	}
+	for _, p := range s.trustedProxies {
+		if p.Contains(addr) {
+			return true
+		}
+	}
+	return false
+}
+
+// clientIP 取请求来源 IP 用于限流。
+// 仅当直连对端是可信代理（TRUSTED_PROXIES）时才信任 X-Forwarded-For，
+// 否则直接用对端 IP，防止攻击者伪造 XFF 绕过按 IP 的限流。
+func (s *Server) clientIP(r *http.Request) string {
+	remote := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		remote = host
+	}
+	if !s.isTrustedProxy(remote) {
+		return remote
+	}
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		if i := strings.Index(xff, ","); i > 0 {
 			return strings.TrimSpace(xff[:i])
 		}
 		return strings.TrimSpace(xff)
 	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
+	return remote
 }
 
 // --- message + JSON helpers ---

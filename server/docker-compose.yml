@@ -11,8 +11,10 @@ services:
     environment:
       # 数据文件路径（默认 /data/data.json，配合上面的卷挂载）
       DATA_FILE: /data/data.json
-      # 可选：首次初始化管理员的令牌（不设则随机生成并打印到 docker logs）
-      # SETUP_TOKEN: change-me
+      # 必填：首次初始化管理员的令牌（初始化完成后可保留在 .env，不再使用）
+      SETUP_TOKEN: ${SETUP_TOKEN:?请设置 SETUP_TOKEN（首次初始化管理员需要，见 README）}
+      # 可选：可信反向代理 IP/CIDR，逗号分隔（如 Cloudflare 网段）。设置后限流才信任 X-Forwarded-For
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       # 可选：离线判定阈值
       IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
 

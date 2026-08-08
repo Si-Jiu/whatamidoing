@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
 	"log"
 	"net/http"
 
@@ -23,16 +22,12 @@ func main() {
 	}
 	h := hub.New()
 
-	// 首次初始化管理员所需的令牌：未配置 SETUP_TOKEN 时随机生成并打印到日志。
-	setupToken := cfg.SetupToken
-	if setupToken == "" {
-		setupToken = rand.Text()
-	}
-	if !ds.IsAdminInitialized() {
-		log.Printf("⚠️  首次设置管理员需要初始化令牌：%s（设 SETUP_TOKEN 可自定；初始化后失效）", setupToken)
+	// 初始化令牌必须显式设置，绝不自动生成（避免凭证出现在日志里）。
+	if !ds.IsAdminInitialized() && cfg.SetupToken == "" {
+		log.Fatal("管理员尚未初始化：请先设置 SETUP_TOKEN 环境变量（首次初始化管理员需要），再启动")
 	}
 
-	handler := api.New(cfg, st, h, ds, setupToken, web.Files)
+	handler := api.New(cfg, st, h, ds, cfg.SetupToken, web.Files)
 
 	addr := ":" + cfg.Port
 	adminState := "未初始化"

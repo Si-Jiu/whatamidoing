@@ -29,10 +29,13 @@
 docker compose up -d
 ```
 
-**首次打开网页会引导设置管理员密码**，需要**初始化令牌**——它打印在服务端启动日志里
-（`docker logs <容器>` 查看，或部署时用 `SETUP_TOKEN` 环境变量预设）。之后在管理面板
+**首次打开网页会引导设置管理员密码**，需要**初始化令牌**——部署时通过 `SETUP_TOKEN`
+环境变量设置（`docker-compose.yml` 已要求必填，`.env.example` 有示例）。之后在管理面板
 （页面右上角「管理员」）里：添加设备（自动生成每设备 token，填到客户端配置）、设置
 网页查看密码。数据（管理员、设备、token）持久化在 `./data/data.json`（compose 已挂载卷）。
+
+> 若部署在反向代理（Cloudflare / Nginx / Caddy）之后，建议设置 `TRUSTED_PROXIES`
+> 为代理网段（逗号分隔），登录限流才能正确识别访问者 IP。
 
 打开 `http://<host>:8080` 即可看到查看页。
 
@@ -43,7 +46,9 @@ docker compose up -d
 
 | 环境变量 | 必填 | 说明 |
 | --- | --- | --- |
+| `SETUP_TOKEN` | 首次初始化时 | 初始化管理员的令牌（首次打开网页输入用） |
 | `DATA_FILE` | 否 | 持久化数据文件路径（管理员/设备/token），默认 `data.json`；Docker 内为 `/data/data.json` |
+| `TRUSTED_PROXIES` | 否 | 可信反向代理 IP/CIDR（逗号分隔），设置后登录限流才信任 `X-Forwarded-For` |
 | `PORT` | 否 | 监听端口，默认 `8080` |
 | `IDLE_TIMEOUT` | 否 | 超过该时长无上报判为离线，默认 `30s` |
 
