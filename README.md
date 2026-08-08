@@ -23,21 +23,16 @@
 
 #### Docker
 
-##### Compose
+复制 `server/docker-compose.yml` 以及 `server/.env.example` 到工作目录
 
-复制 `server/docker-compose.yml` 到工作目录
+```bash
+mv .env.example .env
+```
+
+修改 `.env` 文件，设定 token 和 网页密码
 
 ```bash
 docker compose up -d
-```
-
-##### Command
-
-```bash
-docker pull ghcr.io/si-jiu/whatamidoing-server:latest
-docker run -d --name whatamidoing -p 8080:8080 \
-  -e REPORT_TOKEN="YOUR_TOKEN" -e VIEWER_PASSWORD="YOUR_TOKEN" \
-  ghcr.io/si-jiu/whatamidoing-server:latest
 ```
 
 打开 `http://<host>:8080` 即可看到查看页。
@@ -56,25 +51,24 @@ docker run -d --name whatamidoing -p 8080:8080 \
 
 ### 客户端
 
-#### 安装（从 Release 获取）
+#### 安装
 
-前往 [Releases](https://github.com/Si-Jiu/whatamidoing/releases) 页面下载对应平台的安装包，
-不需要自己编译：
+前往 [Releases](https://github.com/Si-Jiu/whatamidoing/releases) 页面下载对应平台的安装包
 
 | 平台 | 安装包 |
 | --- | --- |
 | **Windows** | `whatamidoing_<ver>_x64-setup.exe`（安装向导） |
 | **macOS** | `whatamidoing_<ver>_aarch64.dmg`（Intel 需自行编译） |
-| **Linux** | `whatamidoing_<ver>_amd64.deb`（Debian/Ubuntu）或 `whatamidoing_<ver>_amd64.AppImage`（单文件，含 webkit 运行时） |
+| **Linux** | `whatamidoing_<ver>_amd64.deb`或 `whatamidoing_<ver>_amd64.AppImage` |
 | **Android** | `app-release.apk`（直接安装即可） |
 
 #### 首次使用
 
-- **桌面端**（Windows / macOS / Linux）：Rust + Tauri 2.x，托盘图标控制共享开关。
+- **桌面端**（Windows / macOS / Linux）：托盘图标控制共享开关。
   首次运行会自动弹出设置窗口：填服务端地址、设备名、设备 ID、上报 token，
   打开「共享前台状态」开关即可。
 
-- **安卓端**（Android）：Kotlin + Jetpack Compose。安装后打开 App：允许「使用情况访问」
+- **安卓端**（Android）：安装后打开 App：允许「使用情况访问」
   （打开共享开关时会引导到系统设置页），填写服务端地址与 token，打开共享。
   前台服务常驻通知栏持续上报。
 
