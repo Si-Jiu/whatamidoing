@@ -43,12 +43,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                SettingsScreen(
-                    cfg = cfg,
-                    onEnabledToggle = { enabled ->
-                        onSharingToggled(enabled)
-                    }
-                )
+                if (isMiui()) {
+                    MiuixSettingsScreen(
+                        cfg = cfg,
+                        onEnabledToggle = { enabled -> onSharingToggled(enabled) }
+                    )
+                } else {
+                    SettingsScreen(
+                        cfg = cfg,
+                        onEnabledToggle = { enabled -> onSharingToggled(enabled) }
+                    )
+                }
             }
         }
     }

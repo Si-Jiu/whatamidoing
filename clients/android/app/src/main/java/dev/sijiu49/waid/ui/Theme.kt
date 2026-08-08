@@ -8,9 +8,14 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.sijiu49.waid.isMiui
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 
 // 与服务端网页 m3.css 同一套 M3 色板，叠加 MIUI X 视觉语言。
 
@@ -52,24 +57,30 @@ private val DarkColors = darkColorScheme(
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    MaterialTheme(
-        colorScheme = if (dark) DarkColors else LightColors,
-        // MIUI X：标题更粗、卡片圆角更大
-        typography = Typography().run {
-            copy(
-                headlineMedium = headlineMedium.copy(fontWeight = FontWeight.Bold),
-                titleLarge = titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                titleMedium = titleMedium.copy(fontWeight = FontWeight.Medium),
-            )
-        },
-        shapes = Shapes(
-            extraSmall = RoundedCornerShape(8.dp),
-            small = RoundedCornerShape(12.dp),
-            medium = RoundedCornerShape(20.dp),
-            large = RoundedCornerShape(24.dp),
-            extraLarge = RoundedCornerShape(32.dp),
-        ),
-        content = content,
-    )
+    if (isMiui()) {
+        // HyperOS / MIUI：用 Miuix 原生设计语言（MIUI 视觉）
+        val controller = remember { ThemeController(ColorSchemeMode.System) }
+        MiuixTheme(controller = controller) { content() }
+    } else {
+        // 其它设备：Material Design 3
+        val dark = isSystemInDarkTheme()
+        MaterialTheme(
+            colorScheme = if (dark) DarkColors else LightColors,
+            typography = Typography().run {
+                copy(
+                    headlineMedium = headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    titleLarge = titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    titleMedium = titleMedium.copy(fontWeight = FontWeight.Medium),
+                )
+            },
+            shapes = Shapes(
+                extraSmall = RoundedCornerShape(8.dp),
+                small = RoundedCornerShape(12.dp),
+                medium = RoundedCornerShape(20.dp),
+                large = RoundedCornerShape(24.dp),
+                extraLarge = RoundedCornerShape(32.dp),
+            ),
+            content = content,
+        )
+    }
 }
