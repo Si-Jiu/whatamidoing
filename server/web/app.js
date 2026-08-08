@@ -37,27 +37,27 @@ function showDevices() {
 /* ---------- 平台/发行版图标（SVG 文件在 assets/ 下） ---------- */
 
 const PLATFORM_META = {
-  windows: { label: "Windows", icon: "platform-windows" },
-  macos: { label: "macOS", icon: "platform-macos" },
-  linux: { label: "Linux", icon: "platform-linux" },
-  android: { label: "Android", icon: "platform-android" },
+  windows: { label: "Windows", icon: "platform/windows" },
+  macos: { label: "macOS", icon: "platform/macos" },
+  linux: { label: "Linux", icon: "platform/linux" },
+  android: { label: "Android", icon: "platform/android" },
 };
 
 const DISTRO_META = {
-  archlinux: { label: "Arch Linux", icon: "distro-archlinux" },
-  cachyos: { label: "CachyOS", icon: "distro-cachyos" },
-  debian: { label: "Debian", icon: "distro-debian" },
-  nixos: { label: "NixOS", icon: "distro-nixos" },
-  steamos: { label: "SteamOS", icon: "distro-steamos" },
-  ubuntu: { label: "Ubuntu", icon: "distro-ubuntu" },
+  archlinux: { label: "Arch Linux", icon: "distro/archlinux" },
+  cachyos: { label: "CachyOS", icon: "distro/cachyos" },
+  debian: { label: "Debian", icon: "distro/debian" },
+  nixos: { label: "NixOS", icon: "distro/nixos" },
+  steamos: { label: "SteamOS", icon: "distro/steamos" },
+  ubuntu: { label: "Ubuntu", icon: "distro/ubuntu" },
 };
 
 function platformMeta(p) {
-  return PLATFORM_META[p] || { label: p || "其他", icon: "platform-custom" };
+  return PLATFORM_META[p] || { label: p || "其他", icon: "platform/custom" };
 }
 
 function distroMeta(d) {
-  return DISTRO_META[d] || (d ? { label: d, icon: "platform-linux" } : null);
+  return DISTRO_META[d] || (d ? { label: d, icon: "platform/linux" } : null);
 }
 
 /** 平台显示名；Linux 且登记了发行版时显示"Linux · 发行版" */
@@ -353,8 +353,8 @@ $("new-device-platform").value = "linux"; // 默认选中 Linux
 function syncPlatformFields() {
   const isLinux = $("new-device-platform").value === "linux";
   $("distro-wrap").hidden = !isLinux;
-  // 发行版选了"自定义"时显示自定义输入框
-  $("distro-custom-wrap").hidden = !($("new-device-distro").value === "");
+  // 仅 Linux 且发行版选了"自定义"时显示自定义输入框
+  $("distro-custom-wrap").hidden = !(isLinux && $("new-device-distro").value === "");
 }
 $("new-device-platform").addEventListener("change", syncPlatformFields);
 $("new-device-distro").addEventListener("change", syncPlatformFields);
