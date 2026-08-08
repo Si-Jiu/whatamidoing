@@ -88,6 +88,14 @@ jobs:
         with:
           workspaces: clients/desktop/src-tauri
 
+      # 产物文件名里的版本号取自 tauri.conf.json，需与 release 标签一致
+      - name: Set version from git tag
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          node -e 'const fs=require("fs");const p="clients/desktop/src-tauri/tauri.conf.json";const d=JSON.parse(fs.readFileSync(p));d.version=process.argv[1];fs.writeFileSync(p,JSON.stringify(d,null,2)+"\n");' "$VER"
+          echo "tauri.conf.json version -> $(node -e 'console.log(require("./clients/desktop/src-tauri/tauri.conf.json").version)')"
+
       - name: Build & attach (.deb / .AppImage)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -124,6 +132,13 @@ jobs:
         with:
           workspaces: clients/desktop/src-tauri
 
+      # 产物文件名里的版本号取自 tauri.conf.json，需与 release 标签一致
+      - name: Set version from git tag
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          node -e 'const fs=require("fs");const p="clients/desktop/src-tauri/tauri.conf.json";const d=JSON.parse(fs.readFileSync(p));d.version=process.argv[1];fs.writeFileSync(p,JSON.stringify(d,null,2)+"\n");' "$VER"
+
       - name: Build & attach (.msi)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -144,6 +159,13 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: clients/desktop/src-tauri
+
+      # 产物文件名里的版本号取自 tauri.conf.json，需与 release 标签一致
+      - name: Set version from git tag
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          node -e 'const fs=require("fs");const p="clients/desktop/src-tauri/tauri.conf.json";const d=JSON.parse(fs.readFileSync(p));d.version=process.argv[1];fs.writeFileSync(p,JSON.stringify(d,null,2)+"\n");' "$VER"
 
       - name: Build & attach (.dmg)
         uses: tauri-apps/tauri-action@v0
