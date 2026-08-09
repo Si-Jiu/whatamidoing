@@ -18,7 +18,7 @@ type Config struct {
 // FromEnv builds Config from environment variables.
 //
 //	PORT           监听端口，默认 8080
-//	IDLE_TIMEOUT   离线判定阈值，默认 30s（如 "45s"）
+//	IDLE_TIMEOUT   离线判定阈值，默认 15s（如 "45s"）
 //	DATA_FILE      持久化数据文件路径（管理员/设备/token），默认 data.json
 //	SETUP_TOKEN    可选：首次初始化管理员的固定令牌；不设则程序自动生成并打印到启动日志
 //	TRUSTED_PROXIES 可选：可信反向代理 IP/CIDR（逗号分隔）。设置后限流才信任
@@ -29,7 +29,7 @@ type Config struct {
 func FromEnv() Config {
 	return Config{
 		Port:           getenv("PORT", "8080"),
-		IdleTimeout:    getDuration("IDLE_TIMEOUT", 30*time.Second),
+		IdleTimeout:    getDuration("IDLE_TIMEOUT", 15*time.Second),
 		DataFile:       getenv("DATA_FILE", "data.json"),
 		SetupToken:     os.Getenv("SETUP_TOKEN"),
 		TrustedProxies: splitList(os.Getenv("TRUSTED_PROXIES")),

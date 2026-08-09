@@ -55,7 +55,7 @@ docker compose up -d
 | `DATA_FILE` | 否 | 持久化数据文件路径（管理员/设备/token），默认 `data.json`；Docker 内为 `/data/data.json` |
 | `TRUSTED_PROXIES` | 否 | 可信反向代理 IP/CIDR（逗号分隔），设置后登录限流才信任 `X-Forwarded-For` |
 | `PORT` | 否 | 监听端口，默认 `8080` |
-| `IDLE_TIMEOUT` | 否 | 离线判定初始默认值 `30s`；可在**管理面板 → 离线判定**中修改并持久化 |
+| `IDLE_TIMEOUT` | 否 | 离线判定初始默认值 `15s`；可在**管理面板 → 离线判定**中修改并持久化 |
 
 > 设备上报 token、网页查看密码不再用环境变量，统一在管理面板配置。
 
@@ -100,7 +100,7 @@ docker compose up -d
 cd server
 go build ./cmd/server                  # 产出二进制
 go run ./cmd/server                     # 直接开发运行（首次初始化令牌自动生成，见启动日志）
-# 可选：PORT=8080 IDLE_TIMEOUT=30s TRUSTED_PROXIES=10.0.0.0/8
+# 可选：PORT=8080 IDLE_TIMEOUT=15s TRUSTED_PROXIES=10.0.0.0/8
 ```
 
 需要 Go 1.26+。交叉编译（在任意平台出 Linux 产物）：
