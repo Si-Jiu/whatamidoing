@@ -23,4 +23,9 @@ class ConfigStore(context: Context) {
     var enabled: Boolean
         get() = prefs.getBoolean("enabled", false)
         set(v) = prefs.edit().putBoolean("enabled", v).apply()
+
+    /** 无感后台：从最近任务/后台预览隐藏（App 不退出，仅不可见）。 */
+    var stealthBackground: Boolean
+        get() = prefs.getBoolean("stealth_background", false)
+        set(v) = prefs.edit().putBoolean("stealth_background", v).apply()
 }

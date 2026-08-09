@@ -1,9 +1,11 @@
 package dev.sijiu49.waid
 
+import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
@@ -46,6 +48,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         batteryOptExempt = hasBatteryOptExempt()
+        applyStealthBackground(cfg.stealthBackground)
         setContent {
             AppTheme {
                 if (isMiui()) {
@@ -53,6 +56,7 @@ class MainActivity : ComponentActivity() {
                         cfg = cfg,
                         batteryOptExempt = batteryOptExempt,
                         onPromptBatteryOpt = ::promptBatteryOpt,
+                        onStealthToggle = ::onStealthToggle,
                         onEnabledToggle = { enabled -> onSharingToggled(enabled) }
                     )
                 } else {
@@ -60,6 +64,7 @@ class MainActivity : ComponentActivity() {
                         cfg = cfg,
                         batteryOptExempt = batteryOptExempt,
                         onPromptBatteryOpt = ::promptBatteryOpt,
+                        onStealthToggle = ::onStealthToggle,
                         onEnabledToggle = { enabled -> onSharingToggled(enabled) }
                     )
                 }
@@ -70,10 +75,29 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         batteryOptExempt = hasBatteryOptExempt()
+        applyStealthBackground(cfg.stealthBackground)
         // 用户从「使用情况访问」设置页返回后，若已授权则自动开始共享。
         if (cfg.enabled && hasUsageAccess()) {
             startSharing()
         }
+    }
+
+    private fun onStealthToggle(enabled: Boolean) {
+        cfg.stealthBackground = enabled
+        applyStealthBackground(enabled)
+    }
+
+    /** 无感后台：从最近任务/后台预览隐藏当前任务（App 不退出）。 */
+    private fun applyStealthBackground(exclude: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return
+        try {
+            val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            for (task in am.appTasks) {
+                if (task.taskInfo.taskId == taskId) {
+                    task.setExcludeFromRecents(exclude)
+                }
+            }
+        } catch (_: Exception) { /* 厂商 ROM 可能不支持，忽略 */ }
     }
 
     private fun onSharingToggled(enabled: Boolean) {
@@ -139,12 +163,14 @@ fun SettingsScreen(
     cfg: ConfigStore,
     batteryOptExempt: Boolean,
     onPromptBatteryOpt: () -> Unit,
+    onStealthToggle: (Boolean) -> Unit,
     onEnabledToggle: (Boolean) -> Unit
 ) {
     var serverUrl by rememberSaveable { mutableStateOf(cfg.serverUrl) }
     var token by rememberSaveable { mutableStateOf(cfg.token) }
     var interval by rememberSaveable { mutableStateOf(cfg.intervalSecs.toString()) }
     var enabled by rememberSaveable { mutableStateOf(cfg.enabled) }
+    var stealth by rememberSaveable { mutableStateOf(cfg.stealthBackground) }
     var saved by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -198,6 +224,32 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("允许后台运行") }
                     }
+                }
+            }
+
+            // 无感后台：从最近任务/后台预览隐藏但不退出
+            Card {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("无感后台", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "切换到其他应用后，从后台预览隐藏但不关闭",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Switch(
+                        checked = stealth,
+                        onCheckedChange = {
+                            stealth = it
+                            onStealthToggle(it)
+                        }
+                    )
                 }
             }
 

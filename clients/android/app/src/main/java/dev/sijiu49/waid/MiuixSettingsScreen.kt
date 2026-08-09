@@ -31,12 +31,14 @@ fun MiuixSettingsScreen(
     cfg: ConfigStore,
     batteryOptExempt: Boolean,
     onPromptBatteryOpt: () -> Unit,
+    onStealthToggle: (Boolean) -> Unit,
     onEnabledToggle: (Boolean) -> Unit
 ) {
     var serverUrl by rememberSaveable { mutableStateOf(cfg.serverUrl) }
     var token by rememberSaveable { mutableStateOf(cfg.token) }
     var interval by rememberSaveable { mutableStateOf(cfg.intervalSecs.toString()) }
     var enabled by rememberSaveable { mutableStateOf(cfg.enabled) }
+    var stealth by rememberSaveable { mutableStateOf(cfg.stealthBackground) }
     var saved by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -91,6 +93,29 @@ fun MiuixSettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) { Text("允许后台运行") }
                     }
+                }
+            }
+
+            // 无感后台：从最近任务/后台预览隐藏但不退出
+            Card {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("无感后台")
+                        Text("切换到其他应用后，从后台预览隐藏但不关闭")
+                    }
+                    Switch(
+                        checked = stealth,
+                        onCheckedChange = {
+                            stealth = it
+                            onStealthToggle(it)
+                        }
+                    )
                 }
             }
 
