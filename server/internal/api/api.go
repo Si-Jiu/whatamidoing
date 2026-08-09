@@ -48,6 +48,7 @@ type Server struct {
 	store          *store.Store // 实时状态（内存）
 	data           *data.Store  // 持久化配置（管理员/设备/token）
 	hub            *hub.Hub
+	viewers        *viewerPresence // 在线查看者计数（按 IP 心跳）
 	viewerSessions *sessionStore
 	adminSessions  *sessionStore
 	setupToken     string
@@ -62,6 +63,7 @@ func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, setupTo
 		store:          st,
 		data:           ds,
 		hub:            h,
+		viewers:        newViewerPresence(),
 		viewerSessions: newSessionStore(),
 		adminSessions:  newSessionStore(),
 		setupToken:     setupToken,
@@ -84,6 +86,7 @@ func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, setupTo
 	// 设备上报 / 查看
 	mux.HandleFunc("POST /api/v1/report", s.handleReport)
 	mux.HandleFunc("GET /api/v1/state", s.requireViewer(s.handleState))
+	mux.HandleFunc("GET /api/v1/presence", s.requireViewer(s.handlePresence))
 	mux.HandleFunc("GET /ws", s.requireViewer(s.handleWS))
 	mux.HandleFunc("POST /login", s.handleLogin)
 	mux.HandleFunc("GET /healthz", s.handleHealth)
@@ -432,6 +435,48 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// handlePresence records this viewer's heartbeat and returns the online viewer count.
+// 每个查看标签页带独立 id（sessionStorage 生成），服务端按 id 计数，45s 无心跳视为离开。
+func (s *Server) handlePresence(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	if id == "" || len(id) > 64 {
+		id = s.clientIP(r) // 无合法 id 时回退按 IP
+	}
+	s.viewers.ping(id)
+	writeJSON(w, http.StatusOK, map[string]int{"viewers": s.viewers.count()})
+}
+
+// viewerPresence tracks active viewers with a heartbeat.
+type viewerPresence struct {
+	mu   sync.Mutex
+	seen map[string]time.Time // viewer id（或 IP）→ 最近心跳
+}
+
+const viewerTTL = 45 * time.Second
+
+func newViewerPresence() *viewerPresence {
+	return &viewerPresence{seen: make(map[string]time.Time)}
+}
+
+func (v *viewerPresence) ping(id string) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.seen[id] = time.Now()
+}
+
+// count returns active viewers, pruning those whose heartbeat expired.
+func (v *viewerPresence) count() int {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	cut := time.Now().Add(-viewerTTL)
+	for ip, t := range v.seen {
+		if t.Before(cut) {
+			delete(v.seen, ip)
+		}
+	}
+	return len(v.seen)
 }
 
 // requireViewer guards an endpoint with viewer auth (no-op when no password set).

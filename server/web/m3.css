@@ -285,6 +285,17 @@ body {
   padding: 48px 0;
 }
 
+.viewer-count {
+  font: var(--md-tp-label-large);
+  color: var(--md-on-surface-variant);
+  text-align: center;
+  margin: 0 0 12px;
+}
+#admin-viewer-count {
+  font: var(--md-tp-label-large);
+  color: var(--md-on-surface-variant);
+}
+
 .error-text {
   color: var(--md-error);
   font: var(--md-tp-body-medium);

@@ -53,7 +53,7 @@
     <!-- 管理面板 -->
     <section id="view-admin" hidden>
       <div class="admin-head">
-        <h1 class="headline">管理面板</h1>
+        <h1 class="headline">管理面板 <span class="viewer-count" id="admin-viewer-count"></span></h1>
         <button id="admin-back" class="md-button md-button--text">← 返回查看</button>
       </div>
 
@@ -122,6 +122,7 @@
 
     <!-- 设备卡片 -->
     <section id="view-devices" hidden>
+      <p class="viewer-count" id="viewer-count" hidden></p>
       <p class="empty-text" id="empty" hidden>暂无设备</p>
       <div class="device-grid" id="devices"></div>
     </section>

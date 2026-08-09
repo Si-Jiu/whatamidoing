@@ -32,6 +32,7 @@ function showDevices() {
   hideAll();
   viewDevices.hidden = false;
   adminBtn.hidden = false;
+  refreshPresence();
 }
 
 /* ---------- 平台/发行版图标（SVG 文件在 assets/ 下） ---------- */
@@ -526,5 +527,33 @@ function stopPolling() {
     pollTimer = null;
   }
 }
+
+/* ---------- 在线查看者计数 ---------- */
+
+// 每个查看标签页一个独立 id（sessionStorage，刷新不变、关闭重开新 id），
+// 服务端据此统计"有多少人在查看"（同 IP 多开也算多个查看者）。
+function viewerId() {
+  let id = sessionStorage.getItem("waid_viewer_id");
+  if (!id) {
+    id = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    sessionStorage.setItem("waid_viewer_id", id);
+  }
+  return id;
+}
+
+async function refreshPresence() {
+  try {
+    const res = await fetch(`/api/v1/presence?id=${viewerId()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const n = (await res.json()).viewers || 0;
+    const text = `${n} 人正在查看`;
+    $("viewer-count").textContent = text;
+    $("viewer-count").hidden = false;
+    const ac = $("admin-viewer-count");
+    if (ac) ac.textContent = `· ${text}`;
+  } catch { /* 未登录或网络错误，保持隐藏 */ }
+}
+setInterval(refreshPresence, 15_000);
+refreshPresence();
 
 init();
