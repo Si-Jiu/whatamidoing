@@ -23,6 +23,7 @@ pub fn run(cfg: Arc<Mutex<ClientConfig>>) {
 
     let mut last: Option<ForegroundInfo> = None;
     let mut app_started = chrono::Utc::now();
+    let mut warned_interval: Option<u64> = None;
 
     loop {
         let cfg_guard = match cfg.lock() {
@@ -51,13 +52,13 @@ pub fn run(cfg: Arc<Mutex<ClientConfig>>) {
                 // 应用映射表规则：进程名 → 友好显示名。
                 let mut reported = info;
                 reported.app = rules::apply(&reported.app, &rules::load());
-                report(&client, &c, &reported, app_started);
+                check_interval(&mut warned_interval, interval, report(&client, &c, &reported, app_started));
             }
             None => {
                 // No foreground available (lock screen / no compositor access):
                 // keep the previous state alive as a heartbeat.
                 if let Some(info) = &last {
-                    report(&client, &c, info, app_started);
+                    check_interval(&mut warned_interval, interval, report(&client, &c, info, app_started));
                 }
             }
         }
@@ -65,7 +66,8 @@ pub fn run(cfg: Arc<Mutex<ClientConfig>>) {
     }
 }
 
-fn report(client: &reqwest::blocking::Client, c: &ClientConfig, info: &ForegroundInfo, started: chrono::DateTime<chrono::Utc>) {
+/// 上报前台状态；成功时返回服务端响应头 `X-Idle-Timeout-Secs` 的离线判定阈值（秒）。
+fn report(client: &reqwest::blocking::Client, c: &ClientConfig, info: &ForegroundInfo, started: chrono::DateTime<chrono::Utc>) -> Option<u64> {
     let url = format!("{}/api/v1/report", c.server_url.trim_end_matches('/'));
     // 设备身份由服务端按 token 确定，无需上报 device_id/device_name
     let body = serde_json::json!({
@@ -81,9 +83,31 @@ fn report(client: &reqwest::blocking::Client, c: &ClientConfig, info: &Foregroun
         .json(&body)
         .send()
     {
-        Ok(resp) if resp.status().is_success() => {}
-        Ok(resp) => log::warn!("上报被拒绝: HTTP {}", resp.status()),
-        Err(e) => log::debug!("上报失败: {e}"),
+        Ok(resp) if resp.status().is_success() => resp
+            .headers()
+            .get("x-idle-timeout-secs")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse().ok()),
+        Ok(resp) => {
+            log::warn!("上报被拒绝: HTTP {}", resp.status());
+            None
+        }
+        Err(e) => {
+            log::debug!("上报失败: {e}");
+            None
+        }
+    }
+}
+
+/// 若上报间隔 ≥ 服务端离线判定阈值，设备会被误判离线——给出一次性警告（间隔变化时重新警告）。
+fn check_interval(warned: &mut Option<u64>, interval: u64, server_idle: Option<u64>) {
+    if let Some(idle) = server_idle {
+        if interval >= idle && *warned != Some(interval) {
+            log::warn!(
+                "上报间隔 {interval} 秒不小于服务端离线判定阈值 {idle} 秒，设备会被误判为离线；请把上报间隔调到小于 {idle} 秒"
+            );
+            *warned = Some(interval);
+        }
     }
 }
 

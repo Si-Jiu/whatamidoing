@@ -340,6 +340,12 @@ body {
   background: var(--md-surface-container-lowest);
 }
 
+.md-field .field-hint {
+  font: var(--md-tp-body-small);
+  color: var(--md-on-surface-variant);
+  margin: 6px 0 0;
+}
+
 /* ---------- 按钮（filled） ---------- */
 
 .md-button {

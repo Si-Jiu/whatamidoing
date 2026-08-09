@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/netip"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -325,6 +326,12 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		AppStartedAt: started,
 	})
 	s.hub.Broadcast(updateMessage(updated))
+	// 告知客户端当前离线判定阈值，便于客户端校验上报间隔是否会导致误判离线。
+	secs := s.data.IdleTimeout()
+	if secs <= 0 {
+		secs = int(s.cfg.IdleTimeout.Seconds())
+	}
+	w.Header().Set("X-Idle-Timeout-Secs", strconv.Itoa(secs))
 	w.WriteHeader(http.StatusNoContent)
 }
 

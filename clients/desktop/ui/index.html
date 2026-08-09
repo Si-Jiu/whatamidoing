@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>whatamidoing 设置</title>
+  <title>What Am I Doing 设置</title>
   <link rel="stylesheet" href="m3.css">
 </head>
 <body>
   <form class="settings-form" id="settings-form">
-    <h1 class="headline">whatamidoing</h1>
-    <p class="settings-desc">共享此设备的前台状态到服务器</p>
-
+    <h1 class="headline">What Am I Doing</h1>
     <label class="md-switch">
       <input type="checkbox" id="enabled">
       <span>共享前台状态</span>
@@ -18,7 +16,7 @@
 
     <div class="md-field">
       <label for="server_url">服务端地址</label>
-      <input id="server_url" type="url" placeholder="https://wad.example.com" required>
+      <input id="server_url" type="url" placeholder="https://waid.example.com" required>
     </div>
 
     <div class="md-field">
@@ -29,6 +27,7 @@
     <div class="md-field">
       <label for="interval_secs">上报间隔（秒）</label>
       <input id="interval_secs" type="number" min="1" max="60">
+      <p class="field-hint">须小于服务端「离线判定」阈值（默认 30 秒），否则会被误判为离线</p>
     </div>
 
     <div class="actions">
