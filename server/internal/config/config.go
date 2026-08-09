@@ -20,7 +20,7 @@ type Config struct {
 //	PORT           监听端口，默认 8080
 //	IDLE_TIMEOUT   离线判定阈值，默认 30s（如 "45s"）
 //	DATA_FILE      持久化数据文件路径（管理员/设备/token），默认 data.json
-//	SETUP_TOKEN    必填（首次初始化管理员时）：初始化令牌，见 README
+//	SETUP_TOKEN    可选：首次初始化管理员的固定令牌；不设则程序自动生成并打印到启动日志
 //	TRUSTED_PROXIES 可选：可信反向代理 IP/CIDR（逗号分隔）。设置后限流才信任
 //	                  X-Forwarded-For 来源 IP；否则一律用直连对端 IP（防伪造绕过限流）
 //

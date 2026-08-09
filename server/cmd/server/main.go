@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"io/fs"
 	"log"
 	"net/http"
@@ -24,9 +25,13 @@ func main() {
 	}
 	h := hub.New()
 
-	// 初始化令牌必须显式设置，绝不自动生成（避免凭证出现在日志里）。
-	if !ds.IsAdminInitialized() && cfg.SetupToken == "" {
-		log.Fatal("管理员尚未初始化：请先设置 SETUP_TOKEN 环境变量（首次初始化管理员需要），再启动")
+	// 初始化令牌：管理员未初始化时，可用 SETUP_TOKEN 环境变量固定，否则程序自动生成并打印到日志。
+	setupToken := cfg.SetupToken
+	if !ds.IsAdminInitialized() {
+		if setupToken == "" {
+			setupToken = "setup_" + rand.Text()
+			log.Printf("首次初始化管理员需要初始化令牌：%s（在初始化页面填写；也可用 SETUP_TOKEN 环境变量固定）", setupToken)
+		}
 	}
 
 	// 开发模式：从磁盘目录提供前端静态文件，并注入自动刷新脚本——文件一改页面立即重载。
@@ -36,7 +41,7 @@ func main() {
 		log.Printf("开发模式：前端静态资源来自 %s（修改即时生效，页面自动刷新）", devDir)
 	}
 
-	handler := api.New(cfg, st, h, ds, cfg.SetupToken, assets)
+	handler := api.New(cfg, st, h, ds, setupToken, assets)
 	if devDir := os.Getenv("WAID_DEV_WEB_DIR"); devDir != "" {
 		handler = &devLiveReload{dir: devDir, next: handler}
 	}

@@ -29,10 +29,11 @@
 docker compose up -d
 ```
 
-**首次打开网页会引导设置管理员密码**，需要**初始化令牌**——部署时通过 `SETUP_TOKEN`
-环境变量设置（`docker-compose.yml` 已要求必填，`.env.example` 有示例）。之后在管理面板
-（页面右上角「管理员」）里：添加设备（自动生成每设备 token，填到客户端配置）、设置
-网页查看密码。数据（管理员、设备、token）持久化在 `./data/data.json`（compose 已挂载卷）。
+**首次打开网页会引导设置管理员密码**，需要**初始化令牌**——服务端启动时自动生成并打印
+在日志里（`docker compose logs` 查看，形如 `setup_…`）；也可用 `SETUP_TOKEN` 环境变量
+固定。之后在管理面板（页面右上角「管理员」）里：添加设备（自动生成每设备 token，填到
+客户端配置）、设置网页查看密码。数据（管理员、设备、token）持久化在 `./data/data.json`
+（compose 已挂载卷）。
 
 > 若部署在反向代理（Cloudflare / Nginx / Caddy）之后，建议设置 `TRUSTED_PROXIES`
 > 为代理网段（逗号分隔），登录限流才能正确识别访问者 IP。
@@ -46,7 +47,7 @@ docker compose up -d
 
 | 环境变量 | 必填 | 说明 |
 | --- | --- | --- |
-| `SETUP_TOKEN` | 首次初始化时 | 初始化管理员的令牌（首次打开网页输入用） |
+| `SETUP_TOKEN` | 否 | 可选：固定初始化令牌；不设则程序自动生成并打印到启动日志 |
 | `DATA_FILE` | 否 | 持久化数据文件路径（管理员/设备/token），默认 `data.json`；Docker 内为 `/data/data.json` |
 | `TRUSTED_PROXIES` | 否 | 可信反向代理 IP/CIDR（逗号分隔），设置后登录限流才信任 `X-Forwarded-For` |
 | `PORT` | 否 | 监听端口，默认 `8080` |
@@ -98,7 +99,7 @@ docker compose up -d
 ```bash
 cd server
 go build ./cmd/server                  # 产出二进制
-SETUP_TOKEN="YOUR_TOKEN" go run ./cmd/server   # 或直接开发运行（首次初始化需要）
+go run ./cmd/server                     # 直接开发运行（首次初始化令牌自动生成，见启动日志）
 # 可选：PORT=8080 IDLE_TIMEOUT=30s TRUSTED_PROXIES=10.0.0.0/8
 ```
 
