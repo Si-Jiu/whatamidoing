@@ -11,13 +11,8 @@ services:
     environment:
       # 数据文件路径（默认 /data/data.json，配合上面的卷挂载）
       DATA_FILE: /data/data.json
-      # 必填：首次初始化管理员的令牌（初始化完成后可保留在 .env，不再使用）
-      # 可选：固定初始化令牌；不设则程序自动生成并打印到启动日志（docker compose logs）
-      SETUP_TOKEN: ${SETUP_TOKEN:-}
       # 可选：可信反向代理 IP/CIDR，逗号分隔（如 Cloudflare 网段）。设置后限流才信任 X-Forwarded-For
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
-      # 可选：离线判定初始默认值（管理面板「离线判定」可改并持久化）
-      IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
 
       # 说明：管理员密码、网页查看密码、设备 token 均通过网页管理面板管理并持久化，
       # 不再需要 REPORT_TOKEN / VIEWER_PASSWORD 环境变量。首次打开网页会引导设置管理员。
