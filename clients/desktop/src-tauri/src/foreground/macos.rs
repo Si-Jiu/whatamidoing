@@ -18,7 +18,10 @@ pub fn current() -> Option<ForegroundInfo> {
         if name.is_empty() {
             return None;
         }
+        // app_id = bundle identifier（如 com.google.Chrome）；app = 应用显示名。
+        let app_id = app.bundleIdentifier().map(|s| s.to_string()).unwrap_or_default();
         Some(ForegroundInfo {
+            app_id,
             app: name,
             window_title: String::new(),
         })

@@ -282,6 +282,7 @@ type reportRequest struct {
 	DeviceID     string     `json:"device_id"`
 	DeviceName   string     `json:"device_name"`
 	Platform     string     `json:"platform"`
+	AppID        string     `json:"app_id"`
 	App          string     `json:"app"`
 	WindowTitle  string     `json:"window_title"`
 	AppStartedAt *time.Time `json:"app_started_at"`
@@ -321,6 +322,7 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		DeviceID:     dev.ID,
 		DeviceName:   dev.Name,
 		Platform:     in.Platform,
+		AppID:        in.AppID,
 		App:          in.App,
 		WindowTitle:  in.WindowTitle,
 		AppStartedAt: started,

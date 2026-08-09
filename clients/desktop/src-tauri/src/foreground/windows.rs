@@ -21,12 +21,14 @@ pub fn current() -> Option<ForegroundInfo> {
 
         let mut pid: u32 = 0;
         windows_sys::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(hwnd, &mut pid);
-        let app = process_name(pid).unwrap_or_else(|| window_title.clone());
+        // app_id = 进程 exe 名（如 chrome）；app 同（reporter 映射表转显示名）
+        let app_id = process_name(pid).unwrap_or_default();
+        let app = if app_id.is_empty() { window_title.clone() } else { app_id.clone() };
 
         if app.is_empty() && window_title.is_empty() {
             return None;
         }
-        Some(ForegroundInfo { app, window_title })
+        Some(ForegroundInfo { app_id, app, window_title })
     }
 }
 

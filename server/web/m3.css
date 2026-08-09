@@ -268,6 +268,13 @@ body {
   word-break: break-word;
 }
 
+.device__appid {
+  font: var(--md-tp-label-medium);
+  color: var(--md-on-surface-variant);
+  opacity: 0.75;
+  word-break: break-all;
+}
+
 .device__meta {
   display: flex;
   gap: 12px;

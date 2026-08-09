@@ -12,6 +12,7 @@ type DeviceState struct {
 	DeviceName   string    `json:"device_name"`
 	Platform     string    `json:"platform"`
 	Distro       string    `json:"distro,omitempty"`
+	AppID        string    `json:"app_id,omitempty"`
 	App          string    `json:"app"`
 	WindowTitle  string    `json:"window_title,omitempty"`
 	AppStartedAt time.Time `json:"app_started_at"`

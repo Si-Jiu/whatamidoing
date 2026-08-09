@@ -45,12 +45,13 @@ class Reporter(private val context: Context) {
             while (isActive) {
                 if (cfg.enabled && cfg.serverUrl.isNotBlank() && cfg.token.isNotBlank()) {
                     runCatching {
-                        foregroundApp()?.let { app ->
-                            if (app != lastApp) {
-                                lastApp = app
+                        foregroundPackage()?.let { pkg ->
+                            if (pkg != lastApp) {
+                                lastApp = pkg
                                 appStartedAt = System.currentTimeMillis()
                             }
-                            report(cfg, app)
+                            // app_id = 包名，app = 应用显示名
+                            report(cfg, pkg, appLabel(pkg))
                         }
                     }
                 }
@@ -65,7 +66,7 @@ class Reporter(private val context: Context) {
     }
 
     /** 最近一次 ACTIVITY_RESUMED 的包名即当前前台应用。 */
-    private fun foregroundApp(): String? {
+    private fun foregroundPackage(): String? {
         val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val now = System.currentTimeMillis()
         val events = usm.queryEvents(now - 60_000, now)
@@ -79,8 +80,7 @@ class Reporter(private val context: Context) {
                 pkg = event.packageName
             }
         }
-        pkg ?: return null
-        return appLabel(pkg)
+        return pkg
     }
 
     private fun appLabel(pkg: String): String = try {
@@ -90,11 +90,12 @@ class Reporter(private val context: Context) {
         pkg
     }
 
-    private fun report(cfg: ConfigStore, app: String) {
+    private fun report(cfg: ConfigStore, pkg: String, app: String) {
         val url = cfg.serverUrl.trimEnd('/') + "/api/v1/report"
         // 设备身份由服务端按 token 确定，无需上报 device_id/device_name
         val body = JSONObject()
             .put("platform", "android")
+            .put("app_id", pkg)
             .put("app", app)
             .put("window_title", "")
             .put("app_started_at", iso(appStartedAt))

@@ -30,6 +30,7 @@ Content-Type: application/json
 ```json
 {
   "platform":      "windows",
+  "app_id":        "chrome",
   "app":           "Google Chrome",
   "window_title":  "GitHub · whatamidoing",
   "app_started_at": "2026-08-08T09:30:00Z"
@@ -39,7 +40,8 @@ Content-Type: application/json
 | 字段 | 必填 | 说明 |
 |---|---|---|
 | `platform` | 是 | 见枚举。 |
-| `app` | 是 | 前台应用显示名。 |
+| `app_id` | 否 | **原始进程名 / 包名**：桌面端 = 进程/窗口类名（如 `kitty`、`chrome`），Android = 包名（如 `com.tencent.mm`）。 |
+| `app` | 是 | 前台应用**显示名**（桌面端为 `app_id` 映射后的友好名；Android 为应用标签）。 |
 | `window_title` | 否 | 窗口标题；**Android 恒为空**（无权限读取，见 README 限制）。 |
 | `app_started_at` | 否 | 当前前台应用开始时刻；缺省视为上报时刻。 |
 

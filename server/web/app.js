@@ -144,6 +144,7 @@ function updateCard(card, d) {
       <span class="device__status"><span class="status-dot"></span><span class="status-label"></span></span>
     </div>
     <div class="device__app"></div>
+    <div class="device__appid"></div>
     <div class="device__window"></div>
     <div class="device__meta"></div>
   `;
@@ -154,6 +155,7 @@ function updateCard(card, d) {
   dot.classList.toggle("status-dot--online", d.online);
   card.querySelector(".status-label").textContent = d.online ? "在线" : "离线";
   card.querySelector(".device__app").textContent = d.app || "离线";
+  card.querySelector(".device__appid").textContent = d.app_id || "";
   card.querySelector(".device__window").textContent = d.window_title || "";
   const metaEl = card.querySelector(".device__meta");
   metaEl.innerHTML = "";
@@ -549,8 +551,6 @@ async function refreshPresence() {
     const text = `${n} 人正在查看`;
     $("viewer-count").textContent = text;
     $("viewer-count").hidden = false;
-    const ac = $("admin-viewer-count");
-    if (ac) ac.textContent = `· ${text}`;
   } catch { /* 未登录或网络错误，保持隐藏 */ }
 }
 setInterval(refreshPresence, 15_000);
