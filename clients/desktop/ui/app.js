@@ -1,4 +1,3 @@
-// whatamidoing 设置窗口 — Tauri 2 后端命令调用
 const invoke = window.__TAURI_INTERNALS__.invoke;
 const $ = (id) => document.getElementById(id);
 
