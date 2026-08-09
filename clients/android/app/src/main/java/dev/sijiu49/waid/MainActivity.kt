@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
         try {
             val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             for (task in am.appTasks) {
-                if (task.taskInfo.taskId == taskId) {
+                if (task.taskInfo?.taskId == taskId) {
                     task.setExcludeFromRecents(exclude)
                 }
             }
