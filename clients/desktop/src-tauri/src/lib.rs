@@ -71,6 +71,16 @@ pub fn run() {
             .inner_size(460.0, 720.0)
             .resizable(false)
             .build()?;
+            // 关闭按钮 = 隐藏窗口而不是退出进程（托盘常驻后台）
+            {
+                let settings_win = settings.clone();
+                let _ = settings.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = settings_win.hide();
+                    }
+                });
+            }
             settings.hide()?;
 
             // First run (no server configured): show settings.
