@@ -67,8 +67,7 @@ pub fn run() {
                 tauri::WebviewUrl::App("index.html".into()),
             )
             .title("WAID 设置")
-            .inner_size(460.0, 720.0)
-            .resizable(false)
+            .resizable(true)
             .build()?;
             // 关闭按钮 = 隐藏窗口而不是退出进程（托盘常驻后台）
             {
