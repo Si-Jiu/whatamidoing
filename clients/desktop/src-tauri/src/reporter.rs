@@ -68,7 +68,6 @@ fn report(client: &reqwest::blocking::Client, c: &ClientConfig, info: &Foregroun
     let url = format!("{}/api/v1/report", c.server_url.trim_end_matches('/'));
     // 设备身份由服务端按 token 确定，无需上报 device_id/device_name
     let body = serde_json::json!({
-        "platform": foreground::platform(),
         "app_id": info.app_id,
         "window_title": info.window_title,
         "app_started_at": started.to_rfc3339(),

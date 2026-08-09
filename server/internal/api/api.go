@@ -371,19 +371,9 @@ func (s *Server) handleAdminMappingsImport(w http.ResponseWriter, r *http.Reques
 type reportRequest struct {
 	DeviceID     string     `json:"device_id"`
 	DeviceName   string     `json:"device_name"`
-	Platform     string     `json:"platform"`
 	AppID        string     `json:"app_id"`
-	App          string     `json:"app"`
 	WindowTitle  string     `json:"window_title"`
 	AppStartedAt *time.Time `json:"app_started_at"`
-}
-
-func (r reportRequest) validate() error {
-	if !validPlatforms[r.Platform] {
-		return errors.New("platform 必须为 windows/macos/linux/android 之一")
-	}
-	// app_id 与 window_title 可同时为空（如纯 Wayland 无法读取时只保活心跳）
-	return nil
 }
 
 func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
@@ -397,10 +387,6 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &in) {
 		return
 	}
-	if err := in.validate(); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
 	started := time.Now()
 	if in.AppStartedAt != nil {
 		started = *in.AppStartedAt
@@ -410,7 +396,9 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	updated := s.store.Upsert(store.DeviceState{
 		DeviceID:     dev.ID,
 		DeviceName:   dev.Name,
-		Platform:     in.Platform,
+		Platform:     dev.Platform,
+		Distro:       dev.Distro,
+		App:          displayName(in.AppID, s.data.Mappings()),
 		AppID:        in.AppID,
 		WindowTitle:  in.WindowTitle,
 		AppStartedAt: started,
