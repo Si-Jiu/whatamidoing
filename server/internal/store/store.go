@@ -38,6 +38,13 @@ func New(idle time.Duration) *Store {
 	}
 }
 
+// SetIdle updates the offline threshold at runtime (admin panel).
+func (s *Store) SetIdle(d time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.idle = d
+}
+
 // Upsert records a report and returns the resulting state.
 func (s *Store) Upsert(d DeviceState) DeviceState {
 	s.mu.Lock()

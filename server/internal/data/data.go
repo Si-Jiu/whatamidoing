@@ -24,6 +24,7 @@ type Data struct {
 	AdminInitialized   bool     `json:"admin_initialized"`
 	AdminPasswordHash  string   `json:"admin_password_hash,omitempty"`
 	ViewerPasswordHash string   `json:"viewer_password_hash,omitempty"`
+	IdleTimeoutSecs    int      `json:"idle_timeout_secs,omitempty"` // 管理面板可改；0 = 用环境变量默认
 	Devices            []Device `json:"devices"`
 }
 
@@ -117,6 +118,23 @@ func (s *Store) SetViewerPasswordHash(hash string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.d.ViewerPasswordHash = hash
+	return s.save()
+}
+
+// --- settings ---
+
+// IdleTimeout returns the persisted idle timeout in seconds (0 = not set).
+func (s *Store) IdleTimeout() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.d.IdleTimeoutSecs
+}
+
+// SetIdleTimeout persists the idle timeout; 0 clears it back to env default.
+func (s *Store) SetIdleTimeout(secs int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.d.IdleTimeoutSecs = secs
 	return s.save()
 }
 

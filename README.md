@@ -51,7 +51,7 @@ docker compose up -d
 | `DATA_FILE` | 否 | 持久化数据文件路径（管理员/设备/token），默认 `data.json`；Docker 内为 `/data/data.json` |
 | `TRUSTED_PROXIES` | 否 | 可信反向代理 IP/CIDR（逗号分隔），设置后登录限流才信任 `X-Forwarded-For` |
 | `PORT` | 否 | 监听端口，默认 `8080` |
-| `IDLE_TIMEOUT` | 否 | 超过该时长无上报判为离线，默认 `30s` |
+| `IDLE_TIMEOUT` | 否 | 离线判定初始默认值 `30s`；可在**管理面板 → 离线判定**中修改并持久化 |
 
 > 设备上报 token、网页查看密码不再用环境变量，统一在管理面板配置。
 

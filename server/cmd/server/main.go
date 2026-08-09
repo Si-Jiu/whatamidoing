@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"whatamidoing/server/internal/api"
 	"whatamidoing/server/internal/config"
@@ -18,11 +19,16 @@ import (
 func main() {
 	cfg := config.FromEnv()
 
-	st := store.New(cfg.IdleTimeout)
 	ds, err := data.New(cfg.DataFile)
 	if err != nil {
 		log.Fatalf("初始化数据存储失败: %v", err)
 	}
+	// 离线阈值：管理面板持久化的值优先，否则用环境变量默认。
+	idle := cfg.IdleTimeout
+	if secs := ds.IdleTimeout(); secs > 0 {
+		idle = time.Duration(secs) * time.Second
+	}
+	st := store.New(idle)
 	h := hub.New()
 
 	// 初始化令牌：管理员未初始化时，可用 SETUP_TOKEN 环境变量固定，否则程序自动生成并打印到日志。

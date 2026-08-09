@@ -16,7 +16,7 @@ services:
       SETUP_TOKEN: ${SETUP_TOKEN:-}
       # 可选：可信反向代理 IP/CIDR，逗号分隔（如 Cloudflare 网段）。设置后限流才信任 X-Forwarded-For
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
-      # 可选：离线判定阈值
+      # 可选：离线判定初始默认值（管理面板「离线判定」可改并持久化）
       IDLE_TIMEOUT: ${IDLE_TIMEOUT:-30s}
 
       # 说明：管理员密码、网页查看密码、设备 token 均通过网页管理面板管理并持久化，

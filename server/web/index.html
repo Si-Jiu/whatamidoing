@@ -70,6 +70,18 @@
       </div>
 
       <div class="md-card admin-section">
+        <h2 class="title">离线判定</h2>
+        <div class="admin-row">
+          <div class="md-field admin-field">
+            <label for="idle-timeout">离线阈值（秒，设备超过该时长无上报判为离线）</label>
+            <input id="idle-timeout" type="number" min="5" max="3600" placeholder="30">
+          </div>
+          <button id="idle-save" class="md-button md-button--filled">保存</button>
+        </div>
+        <p class="saved-hint" id="idle-hint" hidden>已保存 ✓</p>
+      </div>
+
+      <div class="md-card admin-section">
         <h2 class="title">设备管理</h2>
         <div class="admin-row admin-row--wrap">
           <div class="md-field admin-field">

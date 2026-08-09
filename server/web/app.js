@@ -295,6 +295,11 @@ async function openAdminPanel() {
     return;
   }
   renderAdminDevices((await res.json()).devices || []);
+  // 加载离线阈值设置（持久化值或环境变量默认）
+  try {
+    const s = await (await fetch("/api/admin/settings")).json();
+    $("idle-timeout").value = s.idle_timeout_secs ?? "";
+  } catch { /* 保留空值 */ }
   showAdminPanel();
 }
 
@@ -403,6 +408,21 @@ $("viewer-pw-save").addEventListener("click", async () => {
   });
   if (res.ok) {
     const hint = $("viewer-pw-hint");
+    hint.hidden = false;
+    setTimeout(() => (hint.hidden = true), 2000);
+  }
+});
+
+$("idle-save").addEventListener("click", async () => {
+  const secs = parseInt($("idle-timeout").value, 10);
+  if (!secs || secs < 5 || secs > 3600) return;
+  const res = await fetch("/api/admin/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idle_timeout_secs: secs }),
+  });
+  if (res.ok) {
+    const hint = $("idle-hint");
     hint.hidden = false;
     setTimeout(() => (hint.hidden = true), 2000);
   }

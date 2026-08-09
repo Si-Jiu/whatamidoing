@@ -79,6 +79,8 @@ func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, setupTo
 	mux.HandleFunc("POST /api/admin/devices", s.requireAdmin(s.handleAdminAddDevice))
 	mux.HandleFunc("DELETE /api/admin/devices/{id}", s.requireAdmin(s.handleAdminDeleteDevice))
 	mux.HandleFunc("POST /api/admin/viewer-password", s.requireAdmin(s.handleAdminViewerPassword))
+	mux.HandleFunc("GET /api/admin/settings", s.requireAdmin(s.handleAdminGetSettings))
+	mux.HandleFunc("POST /api/admin/settings", s.requireAdmin(s.handleAdminSetSettings))
 	// 设备上报 / 查看
 	mux.HandleFunc("POST /api/v1/report", s.handleReport)
 	mux.HandleFunc("GET /api/v1/state", s.requireViewer(s.handleState))
@@ -238,6 +240,35 @@ func (s *Server) handleAdminViewerPassword(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusInternalServerError, "保存失败")
 		return
 	}
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// handleAdminGetSettings returns current settings (persisted value, else env default).
+func (s *Server) handleAdminGetSettings(w http.ResponseWriter, _ *http.Request) {
+	secs := s.data.IdleTimeout()
+	if secs <= 0 {
+		secs = int(s.cfg.IdleTimeout.Seconds())
+	}
+	writeJSON(w, http.StatusOK, map[string]int{"idle_timeout_secs": secs})
+}
+
+// handleAdminSetSettings persists and applies the offline threshold at runtime.
+func (s *Server) handleAdminSetSettings(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		IdleTimeoutSecs int `json:"idle_timeout_secs"`
+	}
+	if !decodeJSON(w, r, &in) {
+		return
+	}
+	if in.IdleTimeoutSecs < 5 || in.IdleTimeoutSecs > 3600 {
+		writeError(w, http.StatusBadRequest, "离线阈值需在 5–3600 秒之间")
+		return
+	}
+	if err := s.data.SetIdleTimeout(in.IdleTimeoutSecs); err != nil {
+		writeError(w, http.StatusInternalServerError, "保存失败")
+		return
+	}
+	s.store.SetIdle(time.Duration(in.IdleTimeoutSecs) * time.Second)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 

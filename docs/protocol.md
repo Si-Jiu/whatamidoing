@@ -83,7 +83,8 @@ GET /api/v1/state
   则回退到客户端上报的 `platform`。
 - `distro`（可选）：仅 `platform: "linux"` 时存在——管理面板注册时选择的 Linux 发行版
   （如 `ubuntu` / `archlinux` / `cachyos`），查看端据此显示发行版 logo 与名称。
-- `online`：`last_seen` 距今超过 `IDLE_TIMEOUT`（默认 30s）即为 `false`。
+- `online`：`last_seen` 距今超过离线阈值即为 `false`。阈值默认 30s，可在管理面板
+  「离线判定」中修改（5–3600s，持久化），`IDLE_TIMEOUT` 环境变量为初始默认。
 - 未设置网页密码时无需认证；设置后需要 `viewer_session` cookie（见登录）。
 
 ### 登录（仅当设置了网页密码）
@@ -132,6 +133,8 @@ WS /ws
 | `POST /api/admin/devices` | 添加设备 `{"name":"...","platform":"linux","distro":"cachyos"}` → 返回新设备（含自动生成的 `token`）。`platform` 可为枚举值或自定义类型（最多 24 字符），缺省为空；`distro` 可选（最多 24 字符），仅 `platform:"linux"` 时有意义。 |
 | `DELETE /api/admin/devices/{id}` | 删除设备（其 token 即失效）。 |
 | `POST /api/admin/viewer-password` | 设置网页查看密码 `{"password":"..."}`；空字符串清除（免密）。 |
+| `GET /api/admin/settings` | 返回 `{"idle_timeout_secs": n}`（持久化值或默认 30）。 |
+| `POST /api/admin/settings` | 保存离线阈值 `{"idle_timeout_secs": n}`（5–3600，立即生效并持久化）。 |
 
 ## 错误
 
