@@ -23,7 +23,7 @@
 
 #### Docker
 
-复制 `server/docker-compose.yml` 以及 `server/.env.example` 到工作目录：
+复制 `server/docker-compose.yml`到工作目录：
 
 ```bash
 docker compose up -d
