@@ -40,9 +40,7 @@ fn hyprland() -> Option<ForegroundInfo> {
     if class.is_empty() && title.is_empty() {
         return None;
     }
-    // app_id = 原始窗口类名（如 kitty）；app = 类名（reporter 再经映射表转显示名）
-    let app = if class.is_empty() { title.clone() } else { class.clone() };
-    Some(ForegroundInfo { app_id: class, app, window_title: title })
+    Some(ForegroundInfo { app_id: class, window_title: title })
 }
 
 /// X11 EWMH: `_NET_ACTIVE_WINDOW` on the root → window title + class.
@@ -69,11 +67,10 @@ fn x11() -> Option<ForegroundInfo> {
         .or_else(|| string_prop(&conn, window, b"WM_NAME"))
         .unwrap_or_default();
     let app_id = class_prop(&conn, window).unwrap_or_default();
-    let app = if app_id.is_empty() { title.clone() } else { app_id.clone() };
-    if app.is_empty() && title.is_empty() {
+    if app_id.is_empty() && title.is_empty() {
         return None;
     }
-    Some(ForegroundInfo { app_id, app, window_title: title })
+    Some(ForegroundInfo { app_id, window_title: title })
 }
 
 fn string_prop(conn: &impl x11rb::connection::Connection, window: u32, name: &[u8]) -> Option<String> {

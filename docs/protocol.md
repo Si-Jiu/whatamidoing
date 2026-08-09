@@ -31,7 +31,6 @@ Content-Type: application/json
 {
   "platform":      "windows",
   "app_id":        "chrome",
-  "app":           "Google Chrome",
   "window_title":  "GitHub · whatamidoing",
   "app_started_at": "2026-08-08T09:30:00Z"
 }
@@ -40,13 +39,12 @@ Content-Type: application/json
 | 字段 | 必填 | 说明 |
 |---|---|---|
 | `platform` | 是 | 见枚举。 |
-| `app_id` | 否 | **原始进程名 / 包名**：桌面端 = 进程/窗口类名（如 `kitty`、`chrome`），Android = 包名（如 `com.tencent.mm`）。 |
-| `app` | 是 | 前台应用**显示名**（桌面端为 `app_id` 映射后的友好名；Android 为应用标签）。 |
-| `window_title` | 否 | 窗口标题；**Android 恒为空**（无权限读取，见 README 限制）。 |
+| `app_id` | 是 | **原始进程名 / 包名**：桌面端 = 进程/窗口类名（Windows exe、Linux class、macOS bundle id），Android = 包名。 |
+| `window_title` | 否 | 窗口标题；**Android 为应用名称**（无窗口标题可读，用应用名填充）。 |
 | `app_started_at` | 否 | 当前前台应用开始时刻；缺省视为上报时刻。 |
 
-> 客户端**无需**上报 `device_id` / `device_name`——设备身份由 token 决定，显示名取自
-> 管理面板注册的设备。旧客户端仍带这些字段也不影响（服务端忽略）。
+> 客户端**不**上报显示名 `app`——显示名由服务端「进程映射」表（管理面板维护）根据
+> `app_id` 渲染。也不上报 `device_id` / `device_name`（设备身份由 token 决定）。
 
 语义：
 
@@ -70,6 +68,7 @@ GET /api/v1/state
       "device_id":   "dev_xxx",
       "device_name": "我的电脑",
       "platform":    "windows",
+      "app_id":      "chrome",
       "app":         "Google Chrome",
       "window_title":"GitHub · whatamidoing",
       "app_started_at": "2026-08-08T09:30:00Z",
@@ -80,7 +79,8 @@ GET /api/v1/state
 }
 ```
 
-- 返回**管理面板注册的全部设备**；未上报过的设备显示 `online: false`、`app` 为空。
+- 返回**管理面板注册的全部设备**；未上报过的设备显示 `online: false`、`app`/`app_id` 为空。
+- `app`：服务端「进程映射」表根据 `app_id` 渲染的**显示名**；未映射则回退为 `app_id` 原值。
 - `platform`：以**管理面板注册时选择的类型**为准（优先于客户端上报的值）；注册时未选
   则回退到客户端上报的 `platform`。
 - `distro`（可选）：仅 `platform: "linux"` 时存在——管理面板注册时选择的 Linux 发行版
@@ -136,6 +136,11 @@ WS /ws
 | `DELETE /api/admin/devices/{id}` | 删除设备（其 token 即失效）。 |
 | `POST /api/admin/viewer-password` | 设置网页查看密码 `{"password":"..."}`；空字符串清除（免密）。 |
 | `GET /api/admin/settings` | 返回 `{"idle_timeout_secs": n}`（持久化值或默认 30）。 |
+| `GET /api/admin/mappings` | 进程映射表 `{"mappings": {"kitty":"终端"}}`。 |
+| `POST /api/admin/mappings` | 增/改一条映射 `{"app_id":"kitty","name":"终端"}`。 |
+| `DELETE /api/admin/mappings/{app_id}` | 删除一条映射。 |
+| `GET /api/admin/mappings/export` | 导出全部映射为 JSON（可作预设下载）。 |
+| `POST /api/admin/mappings/import` | 导入 JSON 映射预设（整体替换）。 |
 | `POST /api/admin/settings` | 保存离线阈值 `{"idle_timeout_secs": n}`（5–3600，立即生效并持久化）。 |
 
 ## 错误

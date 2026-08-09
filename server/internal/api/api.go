@@ -84,6 +84,11 @@ func New(cfg config.Config, st *store.Store, h *hub.Hub, ds *data.Store, setupTo
 	mux.HandleFunc("POST /api/admin/viewer-password", s.requireAdmin(s.handleAdminViewerPassword))
 	mux.HandleFunc("GET /api/admin/settings", s.requireAdmin(s.handleAdminGetSettings))
 	mux.HandleFunc("POST /api/admin/settings", s.requireAdmin(s.handleAdminSetSettings))
+	mux.HandleFunc("GET /api/admin/mappings", s.requireAdmin(s.handleAdminMappingsGet))
+	mux.HandleFunc("POST /api/admin/mappings", s.requireAdmin(s.handleAdminMappingsSet))
+	mux.HandleFunc("DELETE /api/admin/mappings/{app_id}", s.requireAdmin(s.handleAdminMappingsDelete))
+	mux.HandleFunc("GET /api/admin/mappings/export", s.requireAdmin(s.handleAdminMappingsExport))
+	mux.HandleFunc("POST /api/admin/mappings/import", s.requireAdmin(s.handleAdminMappingsImport))
 	// 设备上报 / 查看
 	mux.HandleFunc("POST /api/v1/report", s.handleReport)
 	mux.HandleFunc("GET /api/v1/state", s.requireViewer(s.handleState))
@@ -276,6 +281,91 @@ func (s *Server) handleAdminSetSettings(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// displayName 把 app_id（进程名/包名）转为展示名：映射表命中用显示名，否则回退原值。
+func displayName(appID string, mappings map[string]string) string {
+	if appID == "" {
+		return ""
+	}
+	if n, ok := mappings[appID]; ok && n != "" {
+		return n
+	}
+	return appID
+}
+
+// --- 映射管理（app_id → 显示名，管理面板维护） ---
+
+func (s *Server) handleAdminMappingsGet(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"mappings": s.data.Mappings()})
+}
+
+func (s *Server) handleAdminMappingsSet(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		AppID string `json:"app_id"`
+		Name  string `json:"name"`
+	}
+	if !decodeJSON(w, r, &in) {
+		return
+	}
+	appID := strings.TrimSpace(in.AppID)
+	name := strings.TrimSpace(in.Name)
+	if appID == "" || len(appID) > 64 {
+		writeError(w, http.StatusBadRequest, "app_id 不能为空且最多 64 字符")
+		return
+	}
+	if len(name) > 32 {
+		writeError(w, http.StatusBadRequest, "显示名最多 32 字符")
+		return
+	}
+	if err := s.data.SetMapping(appID, name); err != nil {
+		writeError(w, http.StatusInternalServerError, "保存失败")
+		return
+	}
+	s.hub.Broadcast(stateMessage(s.allDevices()))
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+func (s *Server) handleAdminMappingsDelete(w http.ResponseWriter, r *http.Request) {
+	if err := s.data.RemoveMapping(r.PathValue("app_id")); err != nil {
+		writeError(w, http.StatusNotFound, "映射不存在")
+		return
+	}
+	s.hub.Broadcast(stateMessage(s.allDevices()))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) handleAdminMappingsExport(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="waid-mappings.json"`)
+	_, _ = w.Write(mustJSON(s.data.Mappings()))
+}
+
+func (s *Server) handleAdminMappingsImport(w http.ResponseWriter, r *http.Request) {
+	var raw map[string]string
+	if !decodeJSON(w, r, &raw) {
+		return
+	}
+	clean := make(map[string]string, len(raw))
+	for id, name := range raw {
+		id = strings.TrimSpace(id)
+		name = strings.TrimSpace(name)
+		if id == "" || len(id) > 64 {
+			writeError(w, http.StatusBadRequest, "映射键 app_id 不能为空且最多 64 字符")
+			return
+		}
+		if len(name) > 32 {
+			writeError(w, http.StatusBadRequest, "显示名最多 32 字符")
+			return
+		}
+		clean[id] = name
+	}
+	if err := s.data.ReplaceMappings(clean); err != nil {
+		writeError(w, http.StatusInternalServerError, "保存失败")
+		return
+	}
+	s.hub.Broadcast(stateMessage(s.allDevices()))
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
 // --- 设备上报 ---
 
 type reportRequest struct {
@@ -292,9 +382,7 @@ func (r reportRequest) validate() error {
 	if !validPlatforms[r.Platform] {
 		return errors.New("platform 必须为 windows/macos/linux/android 之一")
 	}
-	if strings.TrimSpace(r.App) == "" {
-		return errors.New("app 不能为空")
-	}
+	// app_id 与 window_title 可同时为空（如纯 Wayland 无法读取时只保活心跳）
 	return nil
 }
 
@@ -318,12 +406,12 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		started = *in.AppStartedAt
 	}
 	// 设备身份以管理面板注册的为准（token → 设备），忽略上报里的 device_id/name
+	// 客户端只上报原始标识 app_id（进程名/包名）；显示名由服务端映射表渲染。
 	updated := s.store.Upsert(store.DeviceState{
 		DeviceID:     dev.ID,
 		DeviceName:   dev.Name,
 		Platform:     in.Platform,
 		AppID:        in.AppID,
-		App:          in.App,
 		WindowTitle:  in.WindowTitle,
 		AppStartedAt: started,
 	})
@@ -354,6 +442,7 @@ func (s *Server) allDevices() []store.DeviceState {
 	for _, d := range s.store.List() {
 		liveMap[d.DeviceID] = d
 	}
+	mappings := s.data.Mappings()
 	devices := s.data.Devices()
 	out := make([]store.DeviceState, 0, len(devices))
 	for _, dev := range devices {
@@ -364,6 +453,8 @@ func (s *Server) allDevices() []store.DeviceState {
 			if dev.Distro != "" {
 				l.Distro = dev.Distro
 			}
+			// 显示名 = 映射表命中值，未命中回退为原始 app_id
+			l.App = displayName(l.AppID, mappings)
 			out = append(out, l)
 		} else {
 			out = append(out, store.DeviceState{

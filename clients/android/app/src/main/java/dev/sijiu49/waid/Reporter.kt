@@ -50,7 +50,7 @@ class Reporter(private val context: Context) {
                                 lastApp = pkg
                                 appStartedAt = System.currentTimeMillis()
                             }
-                            // app_id = 包名，app = 应用显示名
+                            // app_id = 包名，window_title = 应用显示名（Android 无窗口标题）
                             report(cfg, pkg, appLabel(pkg))
                         }
                     }
@@ -90,14 +90,14 @@ class Reporter(private val context: Context) {
         pkg
     }
 
-    private fun report(cfg: ConfigStore, pkg: String, app: String) {
+    private fun report(cfg: ConfigStore, pkg: String, windowTitle: String) {
         val url = cfg.serverUrl.trimEnd('/') + "/api/v1/report"
         // 设备身份由服务端按 token 确定，无需上报 device_id/device_name
+        // app_id = 包名；window_title = 应用名称（Android 读不到窗口标题，用应用名填充）
         val body = JSONObject()
             .put("platform", "android")
             .put("app_id", pkg)
-            .put("app", app)
-            .put("window_title", "")
+            .put("window_title", windowTitle)
             .put("app_started_at", iso(appStartedAt))
             .toString()
 

@@ -559,6 +559,45 @@ body {
   flex-shrink: 0;
 }
 
+.section-desc {
+  font: var(--md-tp-body-small);
+  color: var(--md-on-surface-variant);
+  margin: 4px 0 12px;
+}
+
+.map-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+.map-row__id {
+  font: var(--md-tp-body-medium);
+  color: var(--md-on-surface-variant);
+  min-width: 0;
+  word-break: break-all;
+}
+.map-row__arrow {
+  color: var(--md-on-surface-variant);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+.map-row__name {
+  font: var(--md-tp-body-medium);
+  font-weight: 500;
+  flex: 1;
+  word-break: break-word;
+}
+.map-row .map-del {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.map-tools {
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .admin-device__token {
   font: var(--md-tp-label-medium);
   color: var(--md-on-surface-variant);

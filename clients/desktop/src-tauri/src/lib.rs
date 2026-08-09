@@ -1,7 +1,6 @@
 mod config;
 mod foreground;
 mod reporter;
-mod rules;
 
 use std::sync::{Arc, Mutex};
 
@@ -67,7 +66,7 @@ pub fn run() {
                 "settings",
                 tauri::WebviewUrl::App("index.html".into()),
             )
-            .title("whatamidoing 设置")
+            .title("WAID 设置")
             .inner_size(460.0, 720.0)
             .resizable(false)
             .build()?;
@@ -135,7 +134,7 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("无法启动 whatamidoing 客户端");
+        .expect("无法启动 WAID 客户端");
 }
 
 fn show_settings(app: &AppHandle) {

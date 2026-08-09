@@ -21,11 +21,12 @@ type Device struct {
 
 // Data is the persisted server state.
 type Data struct {
-	AdminInitialized   bool     `json:"admin_initialized"`
-	AdminPasswordHash  string   `json:"admin_password_hash,omitempty"`
-	ViewerPasswordHash string   `json:"viewer_password_hash,omitempty"`
-	IdleTimeoutSecs    int      `json:"idle_timeout_secs,omitempty"` // 管理面板可改；0 = 用环境变量默认
-	Devices            []Device `json:"devices"`
+	AdminInitialized   bool              `json:"admin_initialized"`
+	AdminPasswordHash  string            `json:"admin_password_hash,omitempty"`
+	ViewerPasswordHash string            `json:"viewer_password_hash,omitempty"`
+	IdleTimeoutSecs    int               `json:"idle_timeout_secs,omitempty"` // 管理面板可改；0 = 用环境变量默认
+	Mappings           map[string]string `json:"mappings,omitempty"`          // app_id(进程名/包名) → 显示名，管理面板维护
+	Devices            []Device          `json:"devices"`
 }
 
 // Store persists Data to a JSON file with a mutex and atomic writes.
@@ -47,7 +48,7 @@ func New(path string) (*Store, error) {
 func (s *Store) load() error {
 	b, err := os.ReadFile(s.path)
 	if errors.Is(err, os.ErrNotExist) {
-		s.d = Data{Devices: []Device{}}
+		s.d = Data{Devices: []Device{}, Mappings: map[string]string{}}
 		return s.save()
 	}
 	if err != nil {
@@ -58,6 +59,9 @@ func (s *Store) load() error {
 	}
 	if s.d.Devices == nil {
 		s.d.Devices = []Device{}
+	}
+	if s.d.Mappings == nil {
+		s.d.Mappings = map[string]string{}
 	}
 	return nil
 }
@@ -135,6 +139,52 @@ func (s *Store) SetIdleTimeout(secs int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.d.IdleTimeoutSecs = secs
+	return s.save()
+}
+
+// --- mappings（app_id → 显示名） ---
+
+// Mappings returns a copy of the app_id → display-name table.
+func (s *Store) Mappings() map[string]string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]string, len(s.d.Mappings))
+	for k, v := range s.d.Mappings {
+		out[k] = v
+	}
+	return out
+}
+
+// SetMapping adds or updates one mapping.
+func (s *Store) SetMapping(appID, name string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.d.Mappings == nil {
+		s.d.Mappings = map[string]string{}
+	}
+	s.d.Mappings[appID] = name
+	return s.save()
+}
+
+// RemoveMapping deletes a mapping; returns an error if it didn't exist.
+func (s *Store) RemoveMapping(appID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.d.Mappings[appID]; !ok {
+		return errors.New("映射不存在")
+	}
+	delete(s.d.Mappings, appID)
+	return s.save()
+}
+
+// ReplaceMappings replaces the whole table (used by import / presets).
+func (s *Store) ReplaceMappings(m map[string]string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.d.Mappings = m
+	if s.d.Mappings == nil {
+		s.d.Mappings = map[string]string{}
+	}
 	return s.save()
 }
 

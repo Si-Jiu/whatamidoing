@@ -4,7 +4,6 @@ use std::time::Duration;
 use crate::config::ClientConfig;
 use crate::foreground;
 use crate::foreground::info::ForegroundInfo;
-use crate::rules;
 
 /// Background loop: polls the foreground app and reports it to the server.
 /// Runs forever; reads the shared config each iteration so toggling sharing
@@ -49,10 +48,8 @@ pub fn run(cfg: Arc<Mutex<ClientConfig>>) {
                     app_started = chrono::Utc::now();
                     last = Some(info.clone());
                 }
-                // 应用映射表规则：进程名 → 友好显示名。
-                let mut reported = info;
-                reported.app = rules::apply(&reported.app, &rules::load());
-                check_interval(&mut warned_interval, interval, report(&client, &c, &reported, app_started));
+                // 只上报原始 app_id（进程名/包名），显示名由服务端映射表渲染。
+                check_interval(&mut warned_interval, interval, report(&client, &c, &info, app_started));
             }
             None => {
                 // No foreground available (lock screen / no compositor access):
@@ -73,7 +70,6 @@ fn report(client: &reqwest::blocking::Client, c: &ClientConfig, info: &Foregroun
     let body = serde_json::json!({
         "platform": foreground::platform(),
         "app_id": info.app_id,
-        "app": info.app,
         "window_title": info.window_title,
         "app_started_at": started.to_rfc3339(),
     });

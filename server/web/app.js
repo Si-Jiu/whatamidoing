@@ -303,8 +303,80 @@ async function openAdminPanel() {
     const s = await (await fetch("/api/admin/settings")).json();
     $("idle-timeout").value = s.idle_timeout_secs ?? "";
   } catch { /* 保留空值 */ }
+  loadMappings();
   showAdminPanel();
 }
+
+/* ---------- 进程映射管理（app_id → 显示名） ---------- */
+
+async function loadMappings() {
+  const res = await fetch("/api/admin/mappings");
+  if (!res.ok) return;
+  const { mappings } = await res.json();
+  const list = $("map-list");
+  list.innerHTML = "";
+  const entries = Object.entries(mappings || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  $("map-empty").hidden = entries.length > 0;
+  for (const [id, name] of entries) {
+    const row = document.createElement("div");
+    row.className = "map-row";
+    row.innerHTML = `
+      <span class="map-row__id"></span>
+      <span class="map-row__arrow">→</span>
+      <span class="map-row__name"></span>
+      <button class="md-button md-button--text map-del">删除</button>`;
+    row.querySelector(".map-row__id").textContent = id;
+    row.querySelector(".map-row__name").textContent = name;
+    row.querySelector(".map-del").addEventListener("click", async () => {
+      await fetch(`/api/admin/mappings/${encodeURIComponent(id)}`, { method: "DELETE" });
+      loadMappings();
+    });
+    list.appendChild(row);
+  }
+}
+
+$("map-add").addEventListener("click", async () => {
+  const appId = $("map-appid").value.trim();
+  const name = $("map-name").value.trim();
+  if (!appId || !name) return;
+  const res = await fetch("/api/admin/mappings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ app_id: appId, name }),
+  });
+  if (res.ok) {
+    $("map-appid").value = "";
+    $("map-name").value = "";
+    loadMappings();
+  }
+});
+
+$("map-export").addEventListener("click", async () => {
+  const res = await fetch("/api/admin/mappings/export");
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "waid-mappings.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+$("map-import").addEventListener("click", () => $("map-import-file").click());
+$("map-import-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const text = await file.text();
+  let data;
+  try { data = JSON.parse(text); } catch { return; }
+  const res = await fetch("/api/admin/mappings/import", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (res.ok) loadMappings();
+});
 
 function renderAdminDevices(devices) {
   const list = $("admin-devices");

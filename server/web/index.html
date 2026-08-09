@@ -105,6 +105,29 @@
         <p class="empty-text admin-empty" id="admin-empty" hidden>暂无设备</p>
         <div id="admin-devices" class="admin-device-list"></div>
       </div>
+
+      <div class="md-card admin-section">
+        <h2 class="title">进程映射</h2>
+        <p class="section-desc">把客户端上报的进程名/包名（app_id）映射成显示名</p>
+        <div class="admin-row admin-row--wrap">
+          <div class="md-field admin-field">
+            <label for="map-appid">进程名/包名</label>
+            <input id="map-appid" type="text" placeholder="如：kitty / com.tencent.mm">
+          </div>
+          <div class="md-field admin-field">
+            <label for="map-name">显示名</label>
+            <input id="map-name" type="text" placeholder="如：终端 / 微信">
+          </div>
+          <button id="map-add" class="md-button md-button--filled">添加映射</button>
+        </div>
+        <div class="admin-row map-tools">
+          <button id="map-export" class="md-button md-button--text">导出预设</button>
+          <button id="map-import" class="md-button md-button--text">导入预设</button>
+          <input id="map-import-file" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p class="empty-text admin-empty" id="map-empty" hidden>还没有映射，添加一个吧</p>
+        <div id="map-list" class="admin-device-list"></div>
+      </div>
     </section>
 
     <!-- 查看者登录 -->
