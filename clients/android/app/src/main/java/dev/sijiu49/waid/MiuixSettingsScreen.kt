@@ -27,7 +27,12 @@ import top.yukonga.miuix.kmp.basic.TextField
 
 /** HyperOS / MIUI 专用设置页：使用 Miuix 组件呈现 MIUI 原生视觉。 */
 @Composable
-fun MiuixSettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
+fun MiuixSettingsScreen(
+    cfg: ConfigStore,
+    batteryOptExempt: Boolean,
+    onPromptBatteryOpt: () -> Unit,
+    onEnabledToggle: (Boolean) -> Unit
+) {
     var serverUrl by rememberSaveable { mutableStateOf(cfg.serverUrl) }
     var token by rememberSaveable { mutableStateOf(cfg.token) }
     var interval by rememberSaveable { mutableStateOf(cfg.intervalSecs.toString()) }
@@ -65,6 +70,27 @@ fun MiuixSettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
                             onEnabledToggle(it)
                         }
                     )
+                }
+            }
+
+            // 防后台限制：引导用户豁免电池优化（MIUI 上尤为重要）
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("后台运行保护")
+                    if (batteryOptExempt) {
+                        Text("已允许后台运行 ✓")
+                    } else {
+                        Text("开启后系统不会在息屏/后台时限制上报")
+                        Button(
+                            onClick = onPromptBatteryOpt,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("允许后台运行") }
+                    }
                 }
             }
 

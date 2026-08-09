@@ -7,14 +7,22 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
 /** 前台服务：在后台持续上报前台应用状态。 */
 class ShareService : Service() {
     private var reporter: Reporter? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
+        // PARTIAL_WAKE_LOCK：息屏时也保持 CPU 唤醒，避免系统冻结后停止上报。
+        val pm = getSystemService(PowerManager::class.java)
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "whatamidoing:report").apply {
+            setReferenceCounted(false)
+            acquire()
+        }
         createChannel()
         reporter = Reporter(this)
     }
@@ -27,6 +35,7 @@ class ShareService : Service() {
 
     override fun onDestroy() {
         reporter?.stop()
+        wakeLock?.let { if (it.isHeld) it.release() }
         super.onDestroy()
     }
 

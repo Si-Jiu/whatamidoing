@@ -3,7 +3,9 @@ package dev.sijiu49.waid
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -38,19 +40,26 @@ import dev.sijiu49.waid.ui.AppTheme
 
 class MainActivity : ComponentActivity() {
     private val cfg by lazy { ConfigStore(this) }
+    // 是否已请求忽略电池优化（防系统限制后台），onResume 时刷新
+    private var batteryOptExempt by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        batteryOptExempt = hasBatteryOptExempt()
         setContent {
             AppTheme {
                 if (isMiui()) {
                     MiuixSettingsScreen(
                         cfg = cfg,
+                        batteryOptExempt = batteryOptExempt,
+                        onPromptBatteryOpt = ::promptBatteryOpt,
                         onEnabledToggle = { enabled -> onSharingToggled(enabled) }
                     )
                 } else {
                     SettingsScreen(
                         cfg = cfg,
+                        batteryOptExempt = batteryOptExempt,
+                        onPromptBatteryOpt = ::promptBatteryOpt,
                         onEnabledToggle = { enabled -> onSharingToggled(enabled) }
                     )
                 }
@@ -60,6 +69,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        batteryOptExempt = hasBatteryOptExempt()
         // 用户从「使用情况访问」设置页返回后，若已授权则自动开始共享。
         if (cfg.enabled && hasUsageAccess()) {
             startSharing()
@@ -101,11 +111,36 @@ class MainActivity : ComponentActivity() {
         )
         return mode == AppOpsManager.MODE_ALLOWED
     }
+
+    /** 是否已豁免电池优化（未被系统限制后台）。 */
+    private fun hasBatteryOptExempt(): Boolean {
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        return pm.isIgnoringBatteryOptimizations(packageName)
+    }
+
+    /** 引导用户开启「忽略电池优化」，防止息屏/后台被系统暂停上报。 */
+    private fun promptBatteryOpt() {
+        // 部分设备允许直接请求白名单；失败则退回电池优化设置列表。
+        val direct = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:$packageName")
+        )
+        try {
+            startActivity(direct)
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
+fun SettingsScreen(
+    cfg: ConfigStore,
+    batteryOptExempt: Boolean,
+    onPromptBatteryOpt: () -> Unit,
+    onEnabledToggle: (Boolean) -> Unit
+) {
     var serverUrl by rememberSaveable { mutableStateOf(cfg.serverUrl) }
     var token by rememberSaveable { mutableStateOf(cfg.token) }
     var interval by rememberSaveable { mutableStateOf(cfg.intervalSecs.toString()) }
@@ -139,6 +174,30 @@ fun SettingsScreen(cfg: ConfigStore, onEnabledToggle: (Boolean) -> Unit) {
                             onEnabledToggle(it)
                         }
                     )
+                }
+            }
+
+            // 防后台限制：引导用户豁免电池优化
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("后台运行保护", style = MaterialTheme.typography.titleMedium)
+                    if (batteryOptExempt) {
+                        Text("已允许后台运行 ✓", style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        Text(
+                            "开启后系统不会在息屏/后台时限制上报",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Button(
+                            onClick = onPromptBatteryOpt,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("允许后台运行") }
+                    }
                 }
             }
 
