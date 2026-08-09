@@ -101,7 +101,7 @@ fn check_interval(warned: &mut Option<u64>, interval: u64, server_idle: Option<u
     if let Some(idle) = server_idle {
         if interval >= idle && *warned != Some(interval) {
             log::warn!(
-                "上报间隔 {interval} 秒不小于服务端离线判定阈值 {idle} 秒，设备会被误判为离线；请把上报间隔调到小于 {idle} 秒"
+                "上报间隔 {interval}s 不能小于服务端离线判定阈值 {idle}s，设备会被误判为离线"
             );
             *warned = Some(interval);
         }

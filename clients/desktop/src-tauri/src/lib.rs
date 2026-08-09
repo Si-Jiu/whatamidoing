@@ -17,7 +17,7 @@ fn rebuild_tray_menu(app: &AppHandle, enabled: bool) {
     let Some(tray) = app.tray_by_id("main") else { return };
     let toggle_text = if enabled { "停止共享" } else { "开始共享" };
     let Ok(toggle) = MenuItem::with_id(app, "toggle", toggle_text, true, None::<&str>) else { return };
-    let Ok(settings) = MenuItem::with_id(app, "settings", "打开设置", true, None::<&str>) else { return };
+    let Ok(settings) = MenuItem::with_id(app, "settings", "设置", true, None::<&str>) else { return };
     let Ok(quit) = MenuItem::with_id(app, "quit", "退出", true, None::<&str>) else { return };
     if let Ok(menu) = Menu::with_items(app, &[&toggle, &settings, &quit]) {
         let _ = tray.set_menu(Some(menu));
@@ -94,7 +94,7 @@ pub fn run() {
 
             // Tray.
             let toggle = MenuItem::with_id(app, "toggle", "开始共享", true, None::<&str>)?;
-            let settings_item = MenuItem::with_id(app, "settings", "打开设置", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&toggle, &settings_item, &quit])?;
 
