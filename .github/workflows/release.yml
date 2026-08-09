@@ -12,9 +12,69 @@ permissions:
   packages: write
 
 jobs:
+  # ============ Release Notes：先建 Release，描述含“上个 tag → 本 tag”全部提交 ============
+  release-notes:
+    name: Release notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build changelog from commits
+        id: changelog
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            echo "::notice::非 tag 触发（workflow_dispatch），跳过创建 Release"
+            exit 0
+          fi
+
+          # 上一个 tag：当前提交（刚推送的 tag）的祖先上最近的可达 tag
+          PREV_TAG="$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || true)"
+
+          cat > changelog.md <<'EOF'
+          ## whatamidoing ${{ github.ref_name }}
+          
+          让朋友实时看到你电脑/手机的前台在干什么。
+          
+          **服务端**：`server/whatamidoing-server-linux-*` 或 Docker 镜像
+          `ghcr.io/${{ github.repository_owner }}/whatamidoing-server`
+          （用法见仓库 README）。
+          
+          **桌面客户端**：`.AppImage` 直接 `chmod +x` 运行；`.deb` 直接安装。
+          **Windows**：`.msi` 安装包。**macOS**：`.dmg`。
+          **安卓**：`whatamidoing_<ver>_android.apk` 直接安装。
+          
+          首次运行桌面/安卓客户端，在设置里填服务端地址与上报 token 即可。
+          
+          ---
+          
+          EOF
+
+          # 提交记录：上个 tag → 本 tag（首次发布则列出全部提交）
+          if [[ -n "$PREV_TAG" ]]; then
+            echo "### 提交记录（$PREV_TAG → $GITHUB_REF_NAME）" >> changelog.md
+            git log --format="* %h %s" "$PREV_TAG"..HEAD >> changelog.md
+          else
+            echo "### 提交记录（首次发布，含全部历史提交）" >> changelog.md
+            git log --format="* %h %s" >> changelog.md
+          fi
+
+      - name: Create draft release
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "whatamidoing $GITHUB_REF_NAME" \
+              --notes-file changelog.md \
+              --draft
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ============ 服务端：Go 二进制 ============
   server:
     name: Server binaries
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +133,7 @@ jobs:
   # ============ 桌面端：Linux（deb + AppImage）============
   desktop-linux:
     name: Desktop · Linux
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,6 +184,7 @@ jobs:
   # ============ 桌面端：Windows（NSIS）============
   desktop-windows:
     name: Desktop · Windows
+    needs: release-notes
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -151,6 +213,7 @@ jobs:
   # ============ 桌面端：macOS（dmg）============
   desktop-macos:
     name: Desktop · macOS
+    needs: release-notes
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -179,6 +242,7 @@ jobs:
   # ============ 安卓：APK ============
   android:
     name: Android APK
+    needs: release-notes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
