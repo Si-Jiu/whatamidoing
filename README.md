@@ -70,7 +70,7 @@ docker compose up -d
 | **Windows** | `whatamidoing_<ver>_x64-setup.exe`（安装向导） |
 | **macOS** | `whatamidoing_<ver>_aarch64.dmg`（Intel 需自行编译） |
 | **Linux** | `whatamidoing_<ver>_amd64.deb`或 `whatamidoing_<ver>_amd64.AppImage` |
-| **Android** | `app-release.apk`（直接安装即可） |
+| **Android** | `whatamidoing_<ver>_android.apk` |
 
 #### 首次使用
 

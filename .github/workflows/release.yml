@@ -114,7 +114,7 @@ jobs:
 
             **桌面客户端**：`.AppImage` 直接 `chmod +x` 运行；`.deb` 直接安装。
             **Windows**：`.msi` 安装包。**macOS**：`.dmg`。
-            **安卓**：`app-release.apk` 直接安装。
+            **安卓**：`whatamidoing_<ver>_android.apk` 直接安装。
 
             首次运行桌面/安卓客户端，在设置里填服务端地址与上报 token 即可。
           releaseDraft: true
@@ -194,6 +194,12 @@ jobs:
       - name: Build release APK
         working-directory: clients/android
         run: ./gradlew assembleRelease --no-daemon
+
+      - name: Rename APK to match version
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          mv clients/android/app/build/outputs/apk/release/app-release.apk \
+             "clients/android/app/build/outputs/apk/release/whatamidoing_${VER}_android.apk"
 
       - name: Attach APK to release
         uses: softprops/action-gh-release@v2
