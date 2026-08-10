@@ -154,9 +154,9 @@ function updateCard(card, d) {
   const dot = card.querySelector(".status-dot");
   dot.classList.toggle("status-dot--online", d.online);
   card.querySelector(".status-label").textContent = d.online ? "在线" : "离线";
-  card.querySelector(".device__app").textContent = d.app || d.app_id;
-  card.querySelector(".device__appid").textContent = ((d.app === d.app_id) ? "" : d.app_id);
-  card.querySelector(".device__window").textContent = d.window_title || "";
+  card.querySelector(".device__app").textContent = d.online ? d.app || d.app_id : "";
+  card.querySelector(".device__appid").textContent = d.online ? ((d.app === d.app_id) ? "" : d.app_id) : "";
+  card.querySelector(".device__window").textContent = d.online ? d.window_title || "" : "";
   const metaEl = card.querySelector(".device__meta");
   metaEl.innerHTML = "";
   if (d.online) {
