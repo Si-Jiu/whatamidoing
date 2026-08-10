@@ -73,7 +73,7 @@ jobs:
 
   # ============ 服务端：Go 二进制 ============
   server:
-    name: Server binaries
+    name: Server · binaries
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
@@ -101,7 +101,7 @@ jobs:
 
   # ============ 服务端：Docker 镜像（GHCR）============
   server-docker:
-    name: Server Docker image
+    name: Server · Docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -241,7 +241,7 @@ jobs:
 
   # ============ 安卓：APK ============
   android:
-    name: Android APK
+    name: Moblie · Android
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
