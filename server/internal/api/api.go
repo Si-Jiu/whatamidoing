@@ -403,6 +403,10 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		WindowTitle:  in.WindowTitle,
 		AppStartedAt: started,
 	})
+	if updated.Platform == "android" && updated.App == updated.AppID {
+		updated.App = updated.WindowTitle
+		updated.WindowTitle = ""
+	}
 	s.hub.Broadcast(updateMessage(updated))
 	// 告知客户端当前离线判定阈值，便于客户端校验上报间隔是否会导致误判离线。
 	secs := s.data.IdleTimeout()
