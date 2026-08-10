@@ -39,6 +39,10 @@ class Reporter(private val context: Context) {
     private var lastApp: String? = null
     private var appStartedAt: Long = System.currentTimeMillis()
 
+    /** 前台应用变化回调（用于刷新常驻通知内容）。 */
+    @Volatile
+    var onAppChanged: ((String) -> Unit)? = null
+
     fun start(cfg: ConfigStore) {
         stop()
         job = scope.launch {
@@ -49,6 +53,7 @@ class Reporter(private val context: Context) {
                             if (pkg != lastApp) {
                                 lastApp = pkg
                                 appStartedAt = System.currentTimeMillis()
+                                onAppChanged?.invoke(pkg)
                             }
                             // app_id = 包名，window_title = 应用显示名（Android 无窗口标题）
                             report(cfg, pkg, appLabel(pkg))
