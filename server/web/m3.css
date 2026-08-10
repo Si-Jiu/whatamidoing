@@ -297,10 +297,10 @@ body {
   color: var(--md-on-surface-variant);
   text-align: center;
   margin: 0 0 12px;
-}
-#admin-viewer-count {
-  font: var(--md-tp-label-large);
-  color: var(--md-on-surface-variant);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .error-text {
