@@ -21,7 +21,7 @@
 
 ## AI 生成披露
 
-本项目由 DeepSeek-V4-Flash-0731 生成。
+本项目由 `DeepSeek-V4-Flash-0731` 生成。
 
 ## 快速开始
 
